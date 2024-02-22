@@ -5,7 +5,6 @@ from py2neo import Graph, Node, Relationship, NodeMatcher
 graph = Graph("http://localhost:7474", auth=("neo4j", "XzJEunfiT2G.t2Y"), name="neo4j")
 
 
-# 定义函数，用于创建公司节点和招聘岗位节点，并建立关系
 def create_knowledge_graph(data):
     # 创建学历要求节点
     education_requirement_dict = {
