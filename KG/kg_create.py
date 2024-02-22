@@ -6,7 +6,7 @@ graph = Graph("http://localhost:7474", auth=("neo4j", "XzJEunfiT2G.t2Y"), name="
 
 
 def create_knowledge_graph(data):
-    # 创建学历要求节点
+    # 创建学历要求 节点
     education_requirement_dict = {
         "大专": Node("EducationRequirement", name="大专"),
         "本科": Node("EducationRequirement", name="本科"),
