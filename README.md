@@ -1,1 +1,3 @@
 # RecommendationSystem
+1.keywords.txt存入的是主要是常见的技术栈以及一些术语（后面会继续完善）关于企业给出数据中的description部分的一些例如热情这类性格特点的词语考虑是否加入？）
+2.kg_query是查询知识图谱用的，输入期望岗位可以查询到所有相关的企业信息以及keywords。根据我们的查询需求修改cypher查询语句即可
