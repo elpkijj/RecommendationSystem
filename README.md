@@ -1,0 +1,2 @@
+#RecommendationSystem
+keywords.txt存入的是主要是常见的技术栈以及一些术语（后面会继续完善）关于企业给出数据中的description部分的一些例如热情这类性格特点的词语考虑是否加入？）
