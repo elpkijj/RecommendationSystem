@@ -4,9 +4,13 @@ from py2neo import Graph, Node, Relationship, NodeMatcher
 
 graph = Graph("http://localhost:7474", auth=("neo4j", "XzJEunfiT2G.t2Y"), name="neo4j")
 
+# 添加关键词列表
+with open('keywords.txt', 'r', encoding='utf-8') as file:
+    keywords = file.read().split('、')
 
+# 定义函数，用于创建公司节点和招聘岗位节点，并建立关系
 def create_knowledge_graph(data):
-    # 创建学历要求 节点
+    # 创建学历要求节点
     education_requirement_dict = {
         "大专": Node("EducationRequirement", name="大专"),
         "本科": Node("EducationRequirement", name="本科"),
@@ -97,6 +101,13 @@ def create_knowledge_graph(data):
             graph.merge(relationship5, "HAS_WEBSITE")  # 添加关系的主标签
             graph.merge(relationship6, "RECRUIT_BY")  # 添加关系
 
+            # 创建关键词节点并建立关系
+            for keyword in keywords:
+                if keyword in row[5]:
+                    keyword_node = Node("Keyword", name=keyword)
+                    graph.merge(keyword_node, "Keyword", "name")
+                    relationship_keyword = Relationship(identity_node, "CONTAINS", keyword_node)
+                    graph.merge(relationship_keyword, "CONTAINS")
         except Exception as e:
             print(f"Error processing row: {row}")
             print(f"Error message: {e}")

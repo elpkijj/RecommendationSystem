@@ -1,22 +1,30 @@
 from py2neo import Graph
 
-# 连接到Neo4j数据库
 graph = Graph("http://localhost:7474", auth=("neo4j", "XzJEunfiT2G.t2Y"), name="neo4j")
 
-# 接收用户输入的期望岗位和学历
-desired_job_title = input("请输入期望岗位：")
-desired_education = input("请输入期望学历：")
+def query_knowledge_graph(job_title):
+    query = f"""
+    MATCH (j:Job {{title: '{job_title}'}})-[:RECRUIT_BY]->(id:Identity),
+          (id)-[:HAS_CONTACT]->(contact:Contact),
+          (id)-[:HAS_COMPANY]->(company:Company),
+          (id)-[:HAS_ADDRESS]->(address:Address),
+          (id)-[:HAS_WEBSITE]->(website:Website),
+          (id)-[:REQUIRES]->(edu:EducationRequirement),
+          (id)-[:CONTAINS]->(keyword:Keyword)
+    RETURN id.name AS ID, contact.name AS Contact, company.name AS Company, 
+           address.name AS Address, website.name AS Website, edu.name AS EducationRequirement, 
+           COLLECT(keyword.name) AS Keywords
+    """
 
-# 执行Cypher查询语句
-query = f"""
-MATCH (company:Company)-[:RECRUITS]->(job:Job {{title: '{desired_job_title}'}})
-MATCH (job)-[:REQUIRES]->(education:EducationRequirement {{name: '{desired_education}'}})
-RETURN job.title AS JobTitle, job.responsibilities AS JobDescription
-"""
+    result = graph.run(query).data()
+    return result
 
-result = graph.run(query)
+if __name__ == "__main__":
+    job_title = input("请输入期望岗位：")
+    result = query_knowledge_graph(job_title)
 
-# 输出匹配到的岗位描述
-for record in result:
-    print(f"岗位名称: {record['JobTitle']}")
-    print(f"岗位描述: {record['JobDescription']}")
+    if result:
+        for item in result:
+            print(item)
+    else:
+        print("未找到相关信息")
