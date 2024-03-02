@@ -1,5 +1,22 @@
+import sqlite3
 import pdfplumber
 import re
+
+# 连接到 SQLite 数据库
+conn = sqlite3.connect('resumes.db')
+cursor = conn.cursor()
+
+# 创建表
+cursor.execute('''CREATE TABLE IF NOT EXISTS resumes (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT,
+                    age INTEGER,
+                    phone TEXT,
+                    email TEXT,
+                    intention TEXT,
+                    skills TEXT
+                )''')
+
 
 def read_pdf_file(filename):
     with pdfplumber.open(filename) as pdf:
@@ -78,10 +95,17 @@ def extract_info_from_pdf_resume(text):
         skills = matched_skills
     info['专业技能'] = skills
 
-
+    # 插入数据到数据库
+    cursor.execute("INSERT INTO resumes (name, age, phone, email, intention, skills) VALUES (?, ?, ?, ?, ?, ?)",
+                   (info['姓名'], info['年龄'], info['联系电话'], info['电子邮件'], info['求职意向'],
+                    ', '.join(info['专业技能']) if info['专业技能'] else None))
+    conn.commit()
     return info
 
 # 示例用法
 resume_text = read_pdf_file('曹锦的简历.pdf')
 resume_info = extract_info_from_pdf_resume(resume_text)
+# 关闭数据库连接
+cursor.close()
+conn.close()
 print(resume_info)
