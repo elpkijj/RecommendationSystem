@@ -57,9 +57,7 @@ def extract_info_from_pdf_resume(text):
             intention = text[start_index:end_index].strip()
             break
     if intention:
-        titles = load_titles_from_file('unique_title.txt')
-        print(titles)
-        print(intention)
+        titles = load_titles_from_file('title.txt')
         for title in titles:
             if title in intention:
                 intention = title
@@ -80,16 +78,6 @@ def extract_info_from_pdf_resume(text):
         skills = matched_skills
     info['专业技能'] = skills
 
-    # 提取教育经历
-    education_keywords = ['教育经历', '学历', '学位']
-    education = None
-    for keyword in education_keywords:
-        if keyword in text:
-            start_index = text.index(keyword) + len(keyword)
-            end_index = text.find('\n\n', start_index)  # 假设信息之间以双换行符分隔
-            education = text[start_index:end_index].strip()
-            break
-    info['教育经历'] = education
 
     return info
 
