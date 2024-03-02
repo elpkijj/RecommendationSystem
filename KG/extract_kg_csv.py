@@ -8,6 +8,7 @@ graph = Graph("http://localhost:7474", auth=("neo4j", "XzJEunfiT2G.t2Y"), name="
 def extract_triples_to_csv():
     triples = []
 
+
     # 查询知识图谱中的三元组
     query = """
     MATCH (subject)-[relation]->(object)
