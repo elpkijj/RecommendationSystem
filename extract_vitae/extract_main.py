@@ -14,7 +14,10 @@ cursor.execute('''CREATE TABLE IF NOT EXISTS resumes (
                     phone TEXT,
                     email TEXT,
                     intention TEXT,
-                    skills TEXT
+                    skills TEXT,
+                    major TEXT,
+                    city TEXT,
+                    education TEXT
                 )''')
 
 
@@ -24,7 +27,19 @@ def read_pdf_file(filename):
         text = first_page.extract_text()
     return text
 
+
 # 其他函数保持不变
+# 提取专业、城市、学历
+def load_keywords_from_file(file_path):
+    with open(file_path, 'r', encoding='utf-8') as file:
+        keywords = file.read().splitlines()
+    return keywords
+
+
+# 加载专业、城市、学历关键词
+major_keywords = load_keywords_from_file('major.txt')
+city_keywords = load_keywords_from_file('city.txt')
+education_keywords = load_keywords_from_file('education.txt')
 
 
 def match_keywords(text, keyword_file):
@@ -33,14 +48,18 @@ def match_keywords(text, keyword_file):
     matched_keywords = [keyword for keyword in keywords if keyword in text]
     return matched_keywords
 
+
 def load_titles_from_file(file_path):
     with open(file_path, 'r', encoding='utf-8') as file:
         titles = file.read().splitlines()
     return titles
 
+
 def match_exact_keywords(text, keywords):
     matched_keywords = [keyword for keyword in keywords if keyword == text]
     return matched_keywords
+
+
 def extract_info_from_pdf_resume(text):
     info = {}
 
@@ -95,15 +114,41 @@ def extract_info_from_pdf_resume(text):
         skills = matched_skills
     info['专业技能'] = skills
 
+    # 提取专业
+    major = None
+    for keyword in major_keywords:
+        if keyword in text:
+            major = keyword
+            break
+    info['专业'] = major
+
+    # 提取城市
+    city = None
+    for keyword in city_keywords:
+        if keyword in text:
+            city = keyword
+            break
+    info['意向城市'] = city
+    # 提取学历
+    education = None
+    for keyword in education_keywords:
+        if keyword in text:
+            education = keyword
+            break
+    info['学历'] = education
     # 插入数据到数据库
-    cursor.execute("INSERT INTO resumes (name, age, phone, email, intention, skills) VALUES (?, ?, ?, ?, ?, ?)",
-                   (info['姓名'], info['年龄'], info['联系电话'], info['电子邮件'], info['求职意向'],
-                    ', '.join(info['专业技能']) if info['专业技能'] else None))
+    cursor.execute(
+        "INSERT INTO resumes (name, age, phone, email, intention, major, city, education, skills) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (info['姓名'], info['年龄'], info['联系电话'], info['电子邮件'], info['求职意向'],
+         info['专业'], info['意向城市'], info['学历'],
+         ', '.join(info['专业技能']) if info['专业技能'] else None))
     conn.commit()
+
     return info
 
+
 # 示例用法
-resume_text = read_pdf_file('曹锦的简历.pdf')
+resume_text = read_pdf_file('凡广的简历.pdf')
 resume_info = extract_info_from_pdf_resume(resume_text)
 # 关闭数据库连接
 cursor.close()
