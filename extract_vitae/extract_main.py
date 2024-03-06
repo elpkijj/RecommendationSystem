@@ -1,6 +1,7 @@
 import sqlite3
 import pdfplumber
 import re
+import json
 
 # 连接到 SQLite 数据库
 conn = sqlite3.connect('resumes.db')
@@ -143,7 +144,12 @@ def extract_info_from_pdf_resume(text):
          info['专业'], info['意向城市'], info['学历'],
          ', '.join(info['专业技能']) if info['专业技能'] else None))
     conn.commit()
+    # 将信息转换为 JSON 字符串
+    #json_data = json.dumps(info, ensure_ascii=False, indent=4)
 
+    # 将 JSON 字符串写入文件
+    #with open('resume_info.json', 'w', encoding='utf-8') as file:
+        #file.write(json_data)
     return info
 
 
@@ -154,3 +160,4 @@ resume_info = extract_info_from_pdf_resume(resume_text)
 cursor.close()
 conn.close()
 print(resume_info)
+
