@@ -8,6 +8,7 @@ graph = Graph("http://localhost:7474", auth=("neo4j", "XzJEunfiT2G.t2Y"), name="
 with open('keywords.txt', 'r', encoding='utf-8') as file:
     keywords = file.read().split('、')
 
+
 # 定义函数，用于创建公司节点和招聘岗位节点，并建立关系
 def create_knowledge_graph(data):
     # 创建学历要求节点
@@ -53,7 +54,7 @@ def create_knowledge_graph(data):
                 job_node = existing_job
 
             # 创建id节点
-            identity_node = Node("Identity", name=identity, salary_range=row[3], repsonsibility=row[5])
+            identity_node = Node("Identity", name=identity, repsonsibility=row[5])
             graph.merge(identity_node, "Identity", "name")
 
             # 创建学历要求节点并建立关系
@@ -61,6 +62,11 @@ def create_knowledge_graph(data):
                 education_requirement_node = education_requirement_dict[education_requirement_name]
                 relationship = Relationship(identity_node, "REQUIRES", education_requirement_node)
                 graph.merge(relationship)
+
+            # 创建薪资节点
+            salary_range = row[3]
+            salary_node = Node("Salary", name=salary_range)
+            graph.merge(salary_node, "Salary", "name")
 
             # 创建联系人节点
             contact_name = row[6]
@@ -91,6 +97,7 @@ def create_knowledge_graph(data):
             relationship4 = Relationship(identity_node, "HAS_ADDRESS", address_node)
             relationship5 = Relationship(identity_node, "HAS_WEBSITE", website_node)
             relationship6 = Relationship(job_node, "RECRUIT_BY", identity_node)
+            relationship7 = Relationship(identity_node, "HAS_SALARY", salary_node)
 
             graph.merge(relationship0, "HAS_COMPANY")  # 添加关系的主标签
             graph.merge(relationship00, "HAS_JOB")  # 添加关系的主标签
@@ -100,6 +107,7 @@ def create_knowledge_graph(data):
             graph.merge(relationship4, "HAS_ADDRESS")  # 添加关系的主标签
             graph.merge(relationship5, "HAS_WEBSITE")  # 添加关系的主标签
             graph.merge(relationship6, "RECRUIT_BY")  # 添加关系
+            graph.merge(relationship7, "HAS_SALARY")
 
             # 创建关键词节点并建立关系
             for keyword in keywords:
