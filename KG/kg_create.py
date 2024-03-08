@@ -7,7 +7,14 @@ graph = Graph("http://localhost:7474", auth=("neo4j", "XzJEunfiT2G.t2Y"), name="
 # 添加关键词列表
 with open('keywords.txt', 'r', encoding='utf-8') as file:
     keywords = file.read().split('、')
+# 添加城市列表
+with open('cityname.txt', 'r', encoding='utf-8') as file:
+    cities = file.read().splitlines()
 
+# 创建城市节点
+for city in cities:
+    city_node = Node("City", name=city)
+    graph.merge(city_node, "City", "name")
 
 # 定义函数，用于创建公司节点和招聘岗位节点，并建立关系
 def create_knowledge_graph(data):
@@ -83,10 +90,22 @@ def create_knowledge_graph(data):
             address_node = Node("Address", name=address)
             graph.merge(address_node, "Address", "name")
 
+            # 检查address是否包含任何城市名，如果是则创建关系边
+            for city in cities:
+                if city in address:
+                    city_node = graph.nodes.match("City", name=city).first()
+                    if city_node:
+                        relationship_city = Relationship(identity_node, "LOCATED_IN", city_node)
+                        graph.merge(relationship_city, "LOCATED_IN")
+                    break
+
             # 创建网址节点
             website = row[9]
             website_node = Node("Website", name=website)
             graph.merge(website_node, "Website", "name")
+
+
+
 
             # 建立关系
             relationship0 = Relationship(identity_node, "HAS_COMPANY", company_node)
