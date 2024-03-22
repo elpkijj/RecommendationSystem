@@ -5,7 +5,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 users = Blueprint('users', __name__)
 
 # ljl:创建账户信息数据库文件,把这个db文件名字改了
-DATABASE = 'Account.db'
+DATABASE = 'AccountInformation.db'
 
 
 def get_db_connection():
@@ -20,6 +20,14 @@ def register_with_account():
     conn = get_db_connection()
     cur = conn.cursor()
     # ljl:检验代码是否正确,此处是检查账户是否已经存在
+    cur.execute('''CREATE TABLE IF NOT EXISTS user (
+                    username nchar(5),
+                    email varchar(30) primary key,
+                    password varchar(20),
+                    phone varchar(20),
+                    first_login bool,
+                    identity char(10) check (identity in('Student','Company'))
+                )''')
     cur.execute('SELECT * FROM user WHERE username = ? OR email = ?', (data['username'], data['email']))
     user = cur.fetchone()
     if user:
