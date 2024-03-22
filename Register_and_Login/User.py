@@ -5,7 +5,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 users = Blueprint('users', __name__)
 
 # ljl:创建账户信息数据库文件,把这个db文件名字改了
-DATABASE = 'Account.db'
+DATABASE = 'AccountInformation.db'
 
 
 def get_db_connection():
@@ -20,6 +20,14 @@ def register_with_account():
     conn = get_db_connection()
     cur = conn.cursor()
     # ljl:检验代码是否正确,此处是检查账户是否已经存在
+    cur.execute('''CREATE TABLE IF NOT EXISTS user (
+                    username nchar(5),
+                    email varchar(30) primary key,
+                    password varchar(20),
+                    phone varchar(20),
+                    first_login bool,
+                    identity char(10) check (identity in('Student','Company'))
+                )''')
     cur.execute('SELECT * FROM user WHERE username = ? OR email = ?', (data['username'], data['email']))
     user = cur.fetchone()
     if user:
@@ -69,10 +77,7 @@ def login_with_account():
     conn.close()
     if user and check_password_hash(user['password'], data['password']):
         # 用户验证成功
-        return jsonify({'message': '登录成功',
-                        'user_id': user['id'],
-                        'first_login': user['first_login']
-                        }), 200
+        return jsonify({'message': '登录成功'}), 200
     else:
         # 用户验证失败
         return jsonify({'message': '用户名/邮箱或密码错误'}), 404
@@ -91,10 +96,7 @@ def login_with_sms():
     conn.close()
     if user:
         # 手机号验证成功
-        return jsonify({'message': '登录成功',
-                        'user_id': user['id'],
-                        'first_login': user['first_login']
-                        }), 200
+        return jsonify({'message': '登录成功'}), 200
     else:
         # 手机号未注册
         return jsonify({'message': '手机号未注册'}), 404
