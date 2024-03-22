@@ -4,7 +4,7 @@ from flask import Blueprint, request, jsonify
 sms = Blueprint('sms', __name__)
 
 # ljl:创建账户信息数据库文件,把这个db文件名字改了
-DATABASE = 'Account.db'
+DATABASE = 'AccountInformation.db'
 
 
 def get_db_connection():
