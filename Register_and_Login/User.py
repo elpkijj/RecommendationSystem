@@ -26,7 +26,7 @@ def register_with_account():
                     email varchar(30),
                     password varchar(20),
                     phone varchar(20),
-                    first_login bool default true,
+                    first_login boolean default true,
                     identity char(10) check (identity in('Student','Company'))
                 )''')
     cur.execute('SELECT * FROM user WHERE username = ? OR email = ?', (data['username'], data['email']))
