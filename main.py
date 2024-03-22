@@ -1,16 +1,20 @@
-# This is a sample Python script.
+from flask import Flask
+from flask_cors import CORS
 
-# Press Shift+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
+app = Flask(__name__)
+CORS(app)
 
+# 导入蓝图
+from Register_and_Login.User import users
+from sms import sms
 
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
+# 注册蓝图
+app.register_blueprint(users)
+app.register_blueprint(sms)
+# 注册蓝图
+# app.register_blueprint(users_bp)
+# app.register_blueprint(resumes_bp)
+# app.register_blueprint(auth_bp, url_prefix='/api')  # 注册蓝图并添加前缀
 
-
-# Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-    print_hi('PyCharm')
-
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+    app.run(debug=True, host='0.0.0.0', port=5000)
