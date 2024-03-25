@@ -5,7 +5,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 users = Blueprint('users', __name__)
 
 # ljl:创建账户信息数据库文件,把这个db文件名字改了
-DATABASE = 'AccountInformation.db'
+DATABASE = 'Information.db'
 
 
 def get_db_connection():
@@ -21,7 +21,7 @@ def register_with_account():
     cur = conn.cursor()
     # ljl:检验代码是否正确,此处是检查账户是否已经存在
     cur.execute('''CREATE TABLE IF NOT EXISTS user (
-                    id int primary key,
+                    id int primary key antoincrement,
                     username nchar(5),
                     email varchar(30),
                     password varchar(20),
@@ -114,3 +114,22 @@ def login_with_sms():
 def validate_sms_code(phone, code):
     # 验证码校验逻辑（需实现）
     return True
+
+
+@users.route('/users/update-identity', methods=['PUT'])
+def update_identity():
+    data = request.get_json()
+    user_id = data['userId']
+    identity = data['identity']
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM users WHERE id = ?', (user_id,))
+    user = cursor.fetchone()
+
+    if not user:
+        return jsonify({'message': '用户不存在'}), 404
+
+    cursor.execute('UPDATE users SET identity = ? WHERE id = ?', (identity, user_id))
+    conn.commit()
+    return jsonify({'message': '身份更新成功'}), 200
