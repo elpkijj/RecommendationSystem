@@ -33,7 +33,7 @@ def register_with_account():
     if user:
         conn.close()
         return jsonify({'message': '用户已存在'}), 409
-    hashed_password = generate_password_hash(data['password'], method='sha256')
+    hashed_password = generate_password_hash(data['password'])
     # ljl:检验代码是否正确,此处是插入账户信息
     cur.execute('INSERT INTO user (username, email, password) VALUES (?, ?, ?)',
                 (data['username'], data['email'], hashed_password))
@@ -77,7 +77,11 @@ def login_with_account():
     conn.close()
     if user and check_password_hash(user['password'], data['password']):
         # 用户验证成功
-        return jsonify({'message': '登录成功'}), 200
+        return jsonify({
+            'message': '登录成功',
+            'user_id': user['id'],  # 返回用户ID
+            'first_login': user['first_login']
+        }), 200
     else:
         # 用户验证失败
         return jsonify({'message': '用户名/邮箱或密码错误'}), 404
@@ -96,7 +100,11 @@ def login_with_sms():
     conn.close()
     if user:
         # 手机号验证成功
-        return jsonify({'message': '登录成功'}), 200
+        return jsonify({
+            'message': '登录成功',
+            'user_id': user['id'],  # 返回用户ID
+            'first_login': user['first_login']
+        }), 200
     else:
         # 手机号未注册
         return jsonify({'message': '手机号未注册'}), 404
