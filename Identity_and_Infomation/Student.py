@@ -38,14 +38,32 @@ def upload_resume():
         cursor.execute('''CREATE TABLE IF NOT EXISTS student_info (
                             id INTEGER PRIMARY KEY AUTOINCREMENT,
                             user_id INTEGER NOT NULL,
-                            
+                            name nchar(5),
+                            sex nchar(2),
+                            lowestSalary varchar(5),
+                            highestSalary varchar(5),
+                            phone char(15),
+                            education nchar(4),
+                            year int,
+                            intention nvarchar(20),
+                            intentionCity nvarchar(5),
+                            email varchar(30),
+                            profession nvarchar(20),
+                            educationExperience text,
+                            internship text,
+                            project text,
+                            advantage text,
+                            privacy-setting int check(privacy-setting in(0,1,2)),
+                            skills varchar(255),
                             FOREIGN KEY(user_id) REFERENCES users(id)
                         )''')
         # ljl:插入数据
-        cursor.execute('''
-            INSERT INTO student_info (user_id, name, )
-            VALUES (?,)
-        ''', (user_id, resume_info.get('XXX'), privacy_setting))
+        cursor.execute('
+            INSERT INTO student_info (user_id, name,sex,lowestSalary, highestSalary,phone,education,year,intention,intentionCity,email,profession,educationExperience,internship,project,advantage,privacy-setting,skills)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', 
+            (user_id, resume_info.get('姓名'), resume_info.get('性别'),resume_info.get('期望薪资下限'),resume_info.get('期望薪资上限'),resume_info.get('联系电话'),
+            resume_info.get('学历'),resume_info.get('年龄'),resume_info.get('求职意向'),resume_info.get('意向城市'),resume_info.get('电子邮箱'),
+            resume_info.get('专业'),resume_info.get('教育经历'),resume_info.get('实习经历'),resume_info.get('项目经历'),resume_info.get('个人优势'),privacy_setting,resume_info.get('专业技能')))
 
         conn.commit()
 
@@ -71,23 +89,23 @@ def update_student_info():
         cursor.execute('''
                 UPDATE student_info SET name = ?, sex = ?, lowest_salary = ?, highest_salary = ?,
                 phone = ?, education = ?, year = ?, intention = ?, intention_city = ?, email = ?, 
-                profession = ?, education_experience = ?, internship = ?, project = ?, advantage = ? 
+                profession = ?, education_experience = ?, internship = ?, project = ?, advantage = ? ,privacy-setting = ? ,skills = ?
                 WHERE user_id = ?
             ''', (data['name'], data['sex'], data['lowestSalary'], data['highestSalary'],
                   data['phone'], data['education'], data['year'], data['intention'], data['intentionCity'],
                   data['email'], data['profession'], data['educationExperience'], data['internship'],
-                  data['project'], data['advantage'], user_id))
+                  data['project'], data['advantage'], data['privacy-setting'], data['skills'], user_id))
     else:
         # ljl:如果不存在，插入新记录
         cursor.execute('''
                 INSERT INTO student_info (user_id, name, sex, lowest_salary, highest_salary,
                 phone, education, year, intention, intention_city, email, profession, 
-                education_experience, internship, project, advantage) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                education_experience, internship, project, advantage, privacy-setting, skills) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?,?)
             ''', (user_id, data['name'], data['sex'], data['lowestSalary'], data['highestSalary'],
                   data['phone'], data['education'], data['year'], data['intention'], data['intentionCity'],
                   data['email'], data['profession'], data['educationExperience'], data['internship'],
-                  data['project'], data['advantage']))
+                  data['project'], data['advantage'],data['privacy-setting'], data['skills']))
 
     conn.commit()
     return jsonify({'message': '信息更新成功'}), 200
@@ -208,6 +226,37 @@ def extract_info_from_pdf_resume(text):
             education = keyword
             break
     info['学历'] = education
+     # 提取性别
+    gender_pattern = r'(男|女)'
+    gender_match = re.search(gender_pattern, text)
+    info['性别'] = gender_match.group(1) if gender_match else None
+
+    # 提取教育经历
+    education_pattern = r'教育经历([\s\S]*?)((实习经历)|(项目经历)|(个人优势)|$)'
+    education_match = re.search(education_pattern, text)
+    info['教育经历'] = education_match.group(1).strip() if education_match else None
+
+    # 提取期望薪资下限和上限
+    salary_pattern = r'期望薪资：(\d+)-(\d+)K'
+    salary_match = re.search(salary_pattern, text)
+    info['期望薪资下限'] = int(salary_match.group(1)) if salary_match else None
+    info['期望薪资上限'] = int(salary_match.group(2)) if salary_match else None
+
+    # 提取实习经历
+    internship_pattern = r'实习经历([\s\S]*?)((教育经历)|(项目经历)|(个人优势)|$)'
+    internship_match = re.search(internship_pattern, text)
+    info['工作经历'] = internship_match.group(1).strip() if internship_match else None
+
+    # 提取项目经历
+    project_pattern = r'项目经历([\s\S]*?)((个人优势)|(教育经历)|(工作经历)|$)'
+    project_match = re.search(project_pattern, text)
+    info['项目经历'] = project_match.group(1).strip() if project_match else None
+
+    # 提取个人优势
+    strengths_pattern = r'个人优势([\s\S]*)((项目经历)|(教育经历)|(工作经历)|$)'
+    strengths_match = re.search(strengths_pattern, text)
+    info['个人优势'] = strengths_match.group(1).strip() if strengths_match else None
+    
     # 插入数据到数据库
     # cursor.execute(
     #     "INSERT INTO resumes (name, age, phone, email, intention, major, city, education, skills) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
