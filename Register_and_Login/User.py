@@ -21,11 +21,12 @@ def register_with_account():
     cur = conn.cursor()
     # ljl:检验代码是否正确,此处是检查账户是否已经存在
     cur.execute('''CREATE TABLE IF NOT EXISTS user (
+                    id int primary key,
                     username nchar(5),
-                    email varchar(30) primary key,
+                    email varchar(30),
                     password varchar(20),
                     phone varchar(20),
-                    first_login bool,
+                    first_login boolean default true,
                     identity char(10) check (identity in('Student','Company'))
                 )''')
     cur.execute('SELECT * FROM user WHERE username = ? OR email = ?', (data['username'], data['email']))
