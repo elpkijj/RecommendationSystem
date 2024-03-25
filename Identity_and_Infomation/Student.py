@@ -63,7 +63,7 @@ def upload_resume():
             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', 
             (user_id, resume_info.get('姓名'), resume_info.get('性别'),resume_info.get('期望薪资下限'),resume_info.get('期望薪资上限'),resume_info.get('联系电话'),
             resume_info.get('学历'),resume_info.get('年龄'),resume_info.get('求职意向'),resume_info.get('意向城市'),resume_info.get('电子邮箱'),
-            resume_info.get('专业'),resume_info.get('教育经历'),resume_info.get('实习经历'),resume_info.get('项目经历'),resume_info.get('个人优势'),privacy_setting,resume_info.get('专业技能')))
+            resume_info.get('专业'),resume_info.get('教育经历'),resume_info.get('工作经历'),resume_info.get('项目经历'),resume_info.get('个人优势'),privacy_setting,resume_info.get('专业技能')))
 
         conn.commit()
 
@@ -230,32 +230,28 @@ def extract_info_from_pdf_resume(text):
     gender_pattern = r'(男|女)'
     gender_match = re.search(gender_pattern, text)
     info['性别'] = gender_match.group(1) if gender_match else None
-
-    # 提取教育经历
-    education_pattern = r'教育经历([\s\S]*?)((实习经历)|(项目经历)|(个人优势)|$)'
-    education_match = re.search(education_pattern, text)
-    info['教育经历'] = education_match.group(1).strip() if education_match else None
-
+    
     # 提取期望薪资下限和上限
     salary_pattern = r'期望薪资：(\d+)-(\d+)K'
     salary_match = re.search(salary_pattern, text)
     info['期望薪资下限'] = int(salary_match.group(1)) if salary_match else None
     info['期望薪资上限'] = int(salary_match.group(2)) if salary_match else None
 
-    # 提取实习经历
-    internship_pattern = r'实习经历([\s\S]*?)((教育经历)|(项目经历)|(个人优势)|$)'
-    internship_match = re.search(internship_pattern, text)
-    info['工作经历'] = internship_match.group(1).strip() if internship_match else None
+   # 提取教育经历
+    education_section = re.search(r'教育经历([\s\S]*?)(?=资格证书|个人优势|工作经历|项目经历|$)', text)
+    info['教育经历'] = education_section.group(1).strip() if education_section else None
 
-    # 提取项目经历
-    project_pattern = r'项目经历([\s\S]*?)((个人优势)|(教育经历)|(工作经历)|$)'
-    project_match = re.search(project_pattern, text)
-    info['项目经历'] = project_match.group(1).strip() if project_match else None
+    # 提取工作经历
+    work_section = re.search(r'工作经历([\s\S]*?)(?=项目经历|个人优势|教育经历|$)', text)
+    info['工作经历'] = work_section.group(1).strip() if work_section else None
 
     # 提取个人优势
-    strengths_pattern = r'个人优势([\s\S]*)((项目经历)|(教育经历)|(工作经历)|$)'
-    strengths_match = re.search(strengths_pattern, text)
-    info['个人优势'] = strengths_match.group(1).strip() if strengths_match else None
+    advantages_section = re.search(r'个人优势([\s\S]*?)(?=工作经历|项目经历|教育经历|$)', text)
+    info['个人优势'] = advantages_section.group(1).strip() if advantages_section else None
+
+    # 提取项目经历
+    projects_section = re.search(r'项目经历([\s\S]*?)(?=工作经历|个人优势|教育经历|$)', text)
+    info['项目经历'] = projects_section.group(1).strip() if projects_section else None
     
     # 插入数据到数据库
     # cursor.execute(
