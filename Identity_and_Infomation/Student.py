@@ -58,23 +58,63 @@ def upload_resume():
                             skills varchar(255),
                             FOREIGN KEY(user_id) REFERENCES users(id)
                         )''')
-        # ljl:插入数据
-        cursor.execute('''
-            INSERT INTO student_info (user_id, name,sex,lowestSalary, highestSalary,phone,education,year,intention,intentionCity,email,profession,educationExperience,internship,project,advantage,privacy_setting,skills)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)''',
-                       (user_id, resume_info.get('姓名'), resume_info.get('性别'), resume_info.get('期望薪资下限'),
-                        resume_info.get('期望薪资上限'), resume_info.get('联系电话'),
-                        resume_info.get('学历'), resume_info.get('年龄'), resume_info.get('求职意向'),
-                        resume_info.get('意向城市'), resume_info.get('电子邮箱'),
-                        resume_info.get('专业'), resume_info.get('教育经历'), resume_info.get('工作经历'),
-                        resume_info.get('项目经历'), resume_info.get('个人优势'), privacy_setting,
-                        resume_info.get('专业技能')))
 
+        cursor.execute('''
+                SELECT * FROM student_info WHERE user_id = ?
+            ''', (user_id,))
+        existing_info = cursor.fetchone()
+
+        if existing_info:
+            # ljl:如果已存在，更新信息
+            cursor.execute('''
+                    UPDATE student_info SET name = ?, sex = ?, lowestsalary = ?, highestsalary = ?,
+                    phone = ?, education = ?, year = ?, intention = ?, intentionCity = ?, email = ?, 
+                    profession = ?, educationExperience = ?, internship = ?, project = ?, advantage = ?, privacy_setting = ?, skills = ?
+                    WHERE user_id = ?
+                ''', (resume_info.get('姓名'), resume_info.get('性别'), resume_info.get('期望薪资下限'),
+                      resume_info.get('期望薪资上限'), resume_info.get('联系电话'),
+                      resume_info.get('学历'), resume_info.get('年龄'), resume_info.get('求职意向'),
+                      resume_info.get('意向城市'), resume_info.get('电子邮箱'),
+                      resume_info.get('专业'), resume_info.get('教育经历'), resume_info.get('工作经历'),
+                      resume_info.get('项目经历'), resume_info.get('个人优势'), privacy_setting,
+                      resume_info.get('专业技能'), user_id))
+        else:
+            # ljl:插入数据
+            cursor.execute('''
+                        INSERT INTO student_info (user_id, name,sex,lowestSalary, highestSalary,phone,education,year,intention,intentionCity,email,profession,educationExperience,internship,project,advantage,privacy_setting,skills)
+                        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)''',
+                           (user_id, resume_info.get('姓名'), resume_info.get('性别'), resume_info.get('期望薪资下限'),
+                            resume_info.get('期望薪资上限'), resume_info.get('联系电话'),
+                            resume_info.get('学历'), resume_info.get('年龄'), resume_info.get('求职意向'),
+                            resume_info.get('意向城市'), resume_info.get('电子邮箱'),
+                            resume_info.get('专业'), resume_info.get('教育经历'), resume_info.get('工作经历'),
+                            resume_info.get('项目经历'), resume_info.get('个人优势'), privacy_setting,
+                            resume_info.get('专业技能')))
         conn.commit()
 
         return jsonify({'message': '简历上传成功', 'resume_info': resume_info}), 200
     else:
         return jsonify({'message': '文件上传失败'}), 400
+
+
+@students.route('/students/get-info/<int:user_id>', methods=['GET'])
+def get_student_info(user_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT name, sex, lowestSalary, highestSalary,
+               phone, education, year, intention, intentionCity, email, profession, 
+               educationExperience, internship, project, advantage
+        FROM student_info WHERE user_id = ?
+    ''', (user_id,))
+    info = cursor.fetchone()
+
+    if not info:
+        return jsonify({'message': '用户信息不存在'}), 404
+
+    # 将查询结果转换为字典
+    info_dict = {k: info[k] for k in info.keys()}
+    return jsonify(info_dict), 200
 
 
 @students.route('/students/update-info', methods=['PUT'])
@@ -93,9 +133,9 @@ def update_student_info():
     if existing_info:
         # ljl:如果已存在，更新信息
         cursor.execute('''
-                UPDATE student_info SET name = ?, sex = ?, lowest_salary = ?, highest_salary = ?,
-                phone = ?, education = ?, year = ?, intention = ?, intention_city = ?, email = ?, 
-                profession = ?, education_experience = ?, internship = ?, project = ?, advantage = ?
+                UPDATE student_info SET name = ?, sex = ?, lowestSalary = ?, highestSalary = ?,
+                phone = ?, education = ?, year = ?, intention = ?, intentionCity = ?, email = ?, 
+                profession = ?, educationExperience = ?, internship = ?, project = ?, advantage = ?
                 WHERE user_id = ?
             ''', (data['name'], data['sex'], data['lowestSalary'], data['highestSalary'],
                   data['phone'], data['education'], data['year'], data['intention'], data['intentionCity'],
@@ -104,10 +144,10 @@ def update_student_info():
     else:
         # ljl:如果不存在，插入新记录
         cursor.execute('''
-                INSERT INTO student_info (user_id, name, sex, lowest_salary, highest_salary,
-                phone, education, year, intention, intention_city, email, profession, 
-                education_experience, internship, project, advantage) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?,?)
+                INSERT INTO student_info (user_id, name, sex, lowestSalary, highestSalary,
+                phone, education, year, intention, intentionCity, email, profession, 
+                educationExperience, internship, project, advantage) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (user_id, data['name'], data['sex'], data['lowestSalary'], data['highestSalary'],
                   data['phone'], data['education'], data['year'], data['intention'], data['intentionCity'],
                   data['email'], data['profession'], data['educationExperience'], data['internship'],
@@ -133,9 +173,9 @@ def load_keywords_from_file(file_path):
 
 
 # 加载专业、城市、学历关键词
-major_keywords = load_keywords_from_file('major.txt')
-city_keywords = load_keywords_from_file('city.txt')
-education_keywords = load_keywords_from_file('education.txt')
+major_keywords = load_keywords_from_file('Identity_and_Infomation/major.txt')
+city_keywords = load_keywords_from_file('Identity_and_Infomation/city.txt')
+education_keywords = load_keywords_from_file('Identity_and_Infomation/education.txt')
 
 
 def match_keywords(text, keyword_file):
