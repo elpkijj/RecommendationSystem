@@ -16,6 +16,7 @@ def get_db_connection():
     conn.row_factory = sqlite3.Row
     return conn
 
+
 @students.route('/resume/upload', methods=['POST'])
 def upload_resume():
     user_id = request.form['userId']
@@ -53,23 +54,28 @@ def upload_resume():
                             internship text,
                             project text,
                             advantage text,
-                            privacy-setting int check(privacy-setting in(0,1,2)),
+                            privacy_setting int check(privacy_setting in(0,1,2)),
                             skills varchar(255),
                             FOREIGN KEY(user_id) REFERENCES users(id)
                         )''')
         # ljl:插入数据
-        cursor.execute('
-            INSERT INTO student_info (user_id, name,sex,lowestSalary, highestSalary,phone,education,year,intention,intentionCity,email,profession,educationExperience,internship,project,advantage,privacy-setting,skills)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', 
-            (user_id, resume_info.get('姓名'), resume_info.get('性别'),resume_info.get('期望薪资下限'),resume_info.get('期望薪资上限'),resume_info.get('联系电话'),
-            resume_info.get('学历'),resume_info.get('年龄'),resume_info.get('求职意向'),resume_info.get('意向城市'),resume_info.get('电子邮箱'),
-            resume_info.get('专业'),resume_info.get('教育经历'),resume_info.get('工作经历'),resume_info.get('项目经历'),resume_info.get('个人优势'),privacy_setting,resume_info.get('专业技能')))
+        cursor.execute('''
+            INSERT INTO student_info (user_id, name,sex,lowestSalary, highestSalary,phone,education,year,intention,intentionCity,email,profession,educationExperience,internship,project,advantage,privacy_setting,skills)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)''',
+                       (user_id, resume_info.get('姓名'), resume_info.get('性别'), resume_info.get('期望薪资下限'),
+                        resume_info.get('期望薪资上限'), resume_info.get('联系电话'),
+                        resume_info.get('学历'), resume_info.get('年龄'), resume_info.get('求职意向'),
+                        resume_info.get('意向城市'), resume_info.get('电子邮箱'),
+                        resume_info.get('专业'), resume_info.get('教育经历'), resume_info.get('工作经历'),
+                        resume_info.get('项目经历'), resume_info.get('个人优势'), privacy_setting,
+                        resume_info.get('专业技能')))
 
         conn.commit()
 
         return jsonify({'message': '简历上传成功', 'resume_info': resume_info}), 200
     else:
         return jsonify({'message': '文件上传失败'}), 400
+
 
 @students.route('/students/update-info', methods=['PUT'])
 def update_student_info():
@@ -89,26 +95,27 @@ def update_student_info():
         cursor.execute('''
                 UPDATE student_info SET name = ?, sex = ?, lowest_salary = ?, highest_salary = ?,
                 phone = ?, education = ?, year = ?, intention = ?, intention_city = ?, email = ?, 
-                profession = ?, education_experience = ?, internship = ?, project = ?, advantage = ? ,privacy-setting = ? ,skills = ?
+                profession = ?, education_experience = ?, internship = ?, project = ?, advantage = ?
                 WHERE user_id = ?
             ''', (data['name'], data['sex'], data['lowestSalary'], data['highestSalary'],
                   data['phone'], data['education'], data['year'], data['intention'], data['intentionCity'],
                   data['email'], data['profession'], data['educationExperience'], data['internship'],
-                  data['project'], data['advantage'], data['privacy-setting'], data['skills'], user_id))
+                  data['project'], data['advantage'], user_id))
     else:
         # ljl:如果不存在，插入新记录
         cursor.execute('''
                 INSERT INTO student_info (user_id, name, sex, lowest_salary, highest_salary,
                 phone, education, year, intention, intention_city, email, profession, 
-                education_experience, internship, project, advantage, privacy-setting, skills) 
+                education_experience, internship, project, advantage) 
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?,?)
             ''', (user_id, data['name'], data['sex'], data['lowestSalary'], data['highestSalary'],
                   data['phone'], data['education'], data['year'], data['intention'], data['intentionCity'],
                   data['email'], data['profession'], data['educationExperience'], data['internship'],
-                  data['project'], data['advantage'],data['privacy-setting'], data['skills']))
+                  data['project'], data['advantage']))
 
     conn.commit()
     return jsonify({'message': '信息更新成功'}), 200
+
 
 def read_pdf_file(filename):
     with pdfplumber.open(filename) as pdf:
@@ -226,18 +233,18 @@ def extract_info_from_pdf_resume(text):
             education = keyword
             break
     info['学历'] = education
-     # 提取性别
+    # 提取性别
     gender_pattern = r'(男|女)'
     gender_match = re.search(gender_pattern, text)
     info['性别'] = gender_match.group(1) if gender_match else None
-    
+
     # 提取期望薪资下限和上限
     salary_pattern = r'期望薪资：(\d+)-(\d+)K'
     salary_match = re.search(salary_pattern, text)
     info['期望薪资下限'] = int(salary_match.group(1)) if salary_match else None
     info['期望薪资上限'] = int(salary_match.group(2)) if salary_match else None
 
-   # 提取教育经历
+    # 提取教育经历
     education_section = re.search(r'教育经历([\s\S]*?)(?=资格证书|个人优势|工作经历|项目经历|$)', text)
     info['教育经历'] = education_section.group(1).strip() if education_section else None
 
@@ -252,7 +259,7 @@ def extract_info_from_pdf_resume(text):
     # 提取项目经历
     projects_section = re.search(r'项目经历([\s\S]*?)(?=工作经历|个人优势|教育经历|$)', text)
     info['项目经历'] = projects_section.group(1).strip() if projects_section else None
-    
+
     # 插入数据到数据库
     # cursor.execute(
     #     "INSERT INTO resumes (name, age, phone, email, intention, major, city, education, skills) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
@@ -267,7 +274,6 @@ def extract_info_from_pdf_resume(text):
     # with open('resume_info.json', 'w', encoding='utf-8') as file:
     # file.write(json_data)
     return info
-
 
 # # 示例用法
 # resume_text = read_pdf_file('凡广的简历.pdf')
