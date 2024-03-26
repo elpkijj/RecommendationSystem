@@ -21,7 +21,7 @@ def register_with_account():
     cur = conn.cursor()
     # ljl:检验代码是否正确,此处是检查账户是否已经存在
     cur.execute('''CREATE TABLE IF NOT EXISTS user (
-                    id int primary key antoincrement,
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
                     username nchar(5),
                     email varchar(30),
                     password varchar(20),
@@ -81,7 +81,8 @@ def login_with_account():
         return jsonify({
             'message': '登录成功',
             'user_id': user['id'],  # 返回用户ID
-            'first_login': user['first_login']
+            'first_login': user['first_login'],
+            'identity': user['identity']
         }), 200
     else:
         # 用户验证失败
@@ -104,7 +105,8 @@ def login_with_sms():
         return jsonify({
             'message': '登录成功',
             'user_id': user['id'],  # 返回用户ID
-            'first_login': user['first_login']
+            'first_login': user['first_login'],
+            'identity': user['identity']
         }), 200
     else:
         # 手机号未注册
