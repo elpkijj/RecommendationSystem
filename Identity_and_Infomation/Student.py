@@ -67,7 +67,7 @@ def upload_resume():
         if existing_info:
             # ljl:如果已存在，更新信息
             cursor.execute('''
-                    UPDATE student_info SET name = ?, sex = ?, lowestsalary = ?, highestsalary = ?,
+                    UPDATE student_info SET name = ?, sex = ?, loweStsalary = ?, higheStsalary = ?,
                     phone = ?, education = ?, year = ?, intention = ?, intentionCity = ?, email = ?, 
                     profession = ?, educationExperience = ?, internship = ?, project = ?, advantage = ?, privacy_setting = ?, skills = ?
                     WHERE user_id = ?
