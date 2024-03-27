@@ -1,16 +1,34 @@
-# This is a sample Python script.
+from flask import Flask, make_response
+from flask_cors import CORS
+# 导入蓝图
+from Register_and_Login.User import users
+from Identity_and_Infomation.Student import students
+from Identity_and_Infomation.Company import companies
+from sms import sms
 
-# Press Shift+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
+app = Flask(__name__)
+CORS(app, resources=r'/*', origins='*', allow_headers='*')
+
+# 注册蓝图
+app.register_blueprint(users)
+app.register_blueprint(students)
+app.register_blueprint(companies)
+app.register_blueprint(sms)
 
 
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
+@app.after_request
+def func_res(resp):
+    res = make_response(resp)
+    res.headers['Access-Control-Allow-Origin'] = '*'
+    res.headers['Access-Control-Allow-Methods'] = '*'
+    res.headers['Access-Control-Allow-Headers'] = '*'
+    return res
 
 
-# Press the green button in the gutter to run the script.
+# 注册蓝图
+# app.register_blueprint(users_bp)
+# app.register_blueprint(resumes_bp)
+# app.register_blueprint(auth_bp, url_prefix='/api')  # 注册蓝图并添加前缀
+
 if __name__ == '__main__':
-    print_hi('PyCharm')
-
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+    app.run(debug=True, host='0.0.0.0', port=5000)
