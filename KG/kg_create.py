@@ -2,7 +2,7 @@ import csv
 import re
 from py2neo import Graph, Node, Relationship, NodeMatcher
 
-graph = Graph("http://localhost:7474", auth=("neo4j", "XzJEunfiT2G.t2Y"), name="kg")
+graph = Graph("http://localhost:7474", auth=("neo4j", "XzJEunfiT2G.t2Y"), name="neo4j")
 
 # 添加关键词列表
 with open('keywords.txt', 'r', encoding='utf-8') as file:
