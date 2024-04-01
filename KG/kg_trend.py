@@ -14,24 +14,41 @@ import numpy as np
 import pandas as pd
 import spacy
 
-
-
+#内部函数
+def salary_ave(s):
+    if s==None:
+        return 0
+    x=0
+    sum1=0
+    for i in range(len(s)):
+ 
+        if '0'<=s[i]<='9':
+            x=x*10+int(s[i])
+        else:
+            
+            sum1=sum1+x
+            x=0
+    return sum1/2 *1000
+        
+#返回岗位度中心性字典和岗位薪资字典
 def get_job_trend():
     # 连接到Neo4j数据库
     graph = Graph("http://localhost:7474", auth=("neo4j", "Zsane0724"), name="neo4j")
     
     query1 = f"""
-    MATCH (c:Job)
+    MATCH (c:Job)  
     OPTIONAL MATCH ()-[r_in]->(c)
     WITH c,  count(r_in) AS inDegree
-    RETURN c, inDegree
+    RETURN c AS jobName, inDegree AS inboundDegree
     """
 
     query2 = f"""
-    MATCH (c:Company)
+    MATCH (c)
     RETURN count(c) AS numberOfCompanies
     
     """
+
+    
     result1 = graph.run(query1)
 
     result2 = graph.run(query2).data()
@@ -39,13 +56,14 @@ def get_job_trend():
     # 输出匹配到的岗位描述
     
     numberOfCompanies=result2[0]["numberOfCompanies"]
-    indegree=[];
-    jobname=[];
-    
-    for [k,i] in result1:
-        indegree.append(i/(numberOfCompanies-1))
+    indegree=[]
+    jobname=[]
+    salary=[]
+    for [k,j] in result1:
+        indegree.append(j/(numberOfCompanies-1))
         jobname.append(k["title"])
-        #print(indegree,jobname)
+        salary.append(salary_ave(k["salary_range"]))
+    #print(jobname,salary,indegree)
     
     #%%
 
@@ -85,12 +103,17 @@ def get_job_trend():
     #%%
     # 打印合并后的职位名称
     sumindegree={}
+    sumsalary={}
     for key, value in merged_index.items():
         #print(f"主职位: {key}, 包含职位编号: {value}")    
         tot=0
+        tot2=0
         for dex in value:
             tot=tot+indegree[dex]
-            sumindegree[key]=tot
+            if salary[dex]!=0:
+                tot2=(tot2+salary[dex])/2
+        sumindegree[key]=tot
+        sumsalary[key]=tot2
     #%%    
     '''
     mask = np.array(Image.open("hat.png"))
@@ -107,9 +130,24 @@ def get_job_trend():
     plt.imshow(wordcloud, interpolation='bilinear')
     plt.axis('off')
     plt.show()
+    
+    mask = np.array(Image.open("hat.png"))
+    
+    wordcloud = WordCloud(scale=32,
+                          width=800, 
+                          height=400,
+                          mask=mask,
+                          background_color='white',
+                          min_font_size=2
+                          ).generate_from_frequencies(sumsalary)
+    
+    plt.figure(figsize=(10, 8))
+    plt.imshow(wordcloud, interpolation='bilinear')
+    plt.axis('off')
+    plt.show()
     '''
     #%%
-    #画直方图
+    #画度中心性直方图
     '''
     x = list(sumindegree.keys())  
     y = list(sumindegree.values())
@@ -128,10 +166,37 @@ def get_job_trend():
       
     # 设置x轴和y轴的标签  
     plt.ylabel('岗位名称')  
-    plt.xlabel('中心度')  
+    plt.xlabel('度中心性')  
       
     # 设置图表的标题  
-    plt.title('直方图')  
+    #plt.title('直方图')  
+      
+    # 显示图表  
+    plt.show()
+    #%%
+    #画薪资直方图
+    
+    x = list(sumsalary.keys())  
+    y = list(sumsalary.values())
+
+    re1 = map(y.index, heapq.nlargest(10, y)) #求最大的n个索引   
+    re2 = heapq.nlargest(10, y) #求最大的n个元素
+    re1=list(re1)
+
+    # 假设你有以下x轴和y轴的数据  
+      
+    # 使用bar函数来绘制直方图
+    plt.rcParams['font.sans-serif'] = ['SimHei']
+
+    xx=[x[i] for i in re1]  
+    plt.barh(xx, re2)  
+      
+    # 设置x轴和y轴的标签  
+    plt.ylabel('岗位名称')  
+    plt.xlabel('平均薪资')  
+      
+    # 设置图表的标题  
+    #plt.title('直方图')  
       
     # 显示图表  
     plt.show()
@@ -146,13 +211,24 @@ def get_job_trend():
     df.columns = ['岗位名称', '中心度']  # 重命名列名  
       
     # 将DataFrame写入Excel文件  
-    #df.to_excel('output.xlsx', index=False, engine='openpyxl')
+    df.to_excel('job_output.xlsx', index=False, engine='openpyxl')
     
-    return sumindegree
+    dict_data=sumsalary
+    # 将字典转换为DataFrame，其中字典的键成为行索引，值成为列'value'下的内容  
+    df = pd.DataFrame.from_dict(dict_data, orient='index', columns=['value'])  
+      
+    # 重置索引，使得原来的键成为普通的列  
+    df = df.reset_index()  
+    df.columns = ['岗位名称', '平均薪资']  # 重命名列名  
+      
+    # 将DataFrame写入Excel文件  
+    #df.to_excel('salary_output.xlsx', index=False, engine='openpyxl')
+    
+    return sumindegree,sumsalary
 #%%
 
 
-
+#返回技能度中心性字典
 def get_skill_trend():
     # 连接到Neo4j数据库
     graph = Graph("http://localhost:7474", auth=("neo4j", "Zsane0724"), name="neo4j")
@@ -165,7 +241,7 @@ def get_skill_trend():
     RETURN c AS nodeName, inDegree
     """
     query2 = f"""
-    MATCH (c:Company)
+    MATCH (c)
     RETURN count(c) AS numberOfCompanies
     
     """
@@ -185,11 +261,11 @@ def get_skill_trend():
 
 #%%
     #画热门技能 
-            
+            '''
     sumindegree_skill={}        
     for i in range(len(skillname)):
         sumindegree_skill[skillname[i]]=indegree_skill[i]
-    '''
+    
     mask = np.array(Image.open("hat.png"))
     
     wordcloud = WordCloud(scale=32,
@@ -205,7 +281,34 @@ def get_skill_trend():
     plt.axis('off')
     plt.show()
 '''
+    #%%
+    #画直方图
+    
+    x = list(sumindegree_skill.keys())  
+    y = list(sumindegree_skill.values())
 
+    re1 = map(y.index, heapq.nlargest(10, y)) #求最大的n个索引   
+    re2 = heapq.nlargest(10, y) #求最大的n个元素
+    re1=list(re1)
+
+    # 假设你有以下x轴和y轴的数据  
+      
+    # 使用bar函数来绘制直方图
+    plt.rcParams['font.sans-serif'] = ['SimHei']
+
+    xx=[x[i] for i in re1]  
+    plt.barh(xx, re2)  
+      
+    # 设置x轴和y轴的标签  
+    plt.ylabel('技能名称')  
+    plt.xlabel('度中心性')  
+      
+    # 设置图表的标题  
+     
+      
+    # 显示图表  
+    plt.show()
+    
 #%%
     dict_data=sumindegree_skill
     # 将字典转换为DataFrame，其中字典的键成为行索引，值成为列'value'下的内容  
@@ -216,13 +319,13 @@ def get_skill_trend():
     df.columns = ['技能名称', '中心度']  # 重命名列名  
       
     # 将DataFrame写入Excel文件  
-    #df.to_excel('output_skill.xlsx', index=False, engine='openpyxl')
+    #df.to_excel('skill_output.xlsx', index=False, engine='openpyxl')
     return sumindegree_skill
 
 x=get_skill_trend()
-print(x)
+#print(x)
 y=get_job_trend()
-print(y)
+#print(y)
 
 
 
