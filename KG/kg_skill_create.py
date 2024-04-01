@@ -34,32 +34,6 @@ def create_identity_and_keyword_nodes(data):
             continue
 
 
-# 处理简历数据
-def process_resumes(filepath):
-    with open(filepath, 'r', encoding='utf-8') as file:
-        resumes = json.load(file)
-
-    for resume in resumes:
-        user_id = resume['id']
-        skills = resume['skills'].split(', ')
-
-        # 创建或匹配UserID节点
-        user_node = Node("UserID", id=user_id)
-        graph.merge(user_node, "UserID", "id")
-
-        for skill in skills:
-            # 检查keyword节点是否已存在
-            existing_keyword = graph.nodes.match("Keyword", name=skill).first()
-            if not existing_keyword:
-                keyword_node = Node("Keyword", name=skill)
-                graph.merge(keyword_node, "Keyword", "name")
-            else:
-                keyword_node = existing_keyword
-
-            # 建立UserID与Keyword之间的HASSKILL关系
-            relationship = Relationship(user_node, "HASSKILL", keyword_node)
-            graph.merge(relationship)
-
 
 # 读取CSV文件数据
 def read_csv_data(filepath):
@@ -74,9 +48,6 @@ def main():
     # 读取并处理企业招聘信息
     recruitment_data = read_csv_data('data_all.csv')  # 假设数据文件名为data_all.csv
     create_identity_and_keyword_nodes(recruitment_data)
-
-    # 处理简历数据并添加到知识图谱
-    process_resumes('resumes.json')
 
 
 # 执行主逻辑
