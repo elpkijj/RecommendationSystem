@@ -6,6 +6,7 @@ import threading
 import pdfplumber
 import re
 import json
+from py2neo import Graph, Node, Relationship
 
 students = Blueprint('students', __name__)
 
@@ -192,13 +193,77 @@ def update_student_info():
             ''', (data['skills'], user_id))
     conn.commit()
 
+    # ljl修改：加入了两个函数供转成json文件使用
+    def fetch_student_info():
+    conn = sqlite3.connect('Information.db')
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM student_info')
+    student_info_rows = cursor.fetchall()
+    student_info_list = [dict(row) for row in student_info_rows]
+    conn.close()
+    return student_info_list
+    
+    def save_student_info_to_json(student_info, filename='student_info.json'):
+    with open(filename, 'w', encoding='utf-8') as file:
+        json.dump(student_info, file, ensure_ascii=False, indent=4)
+
     def async_process():
         # ljl:将学生信息转换为json文件
-
+        #（在上面加了fetch_student_info和save_student_info_to_json函数）
+        student_info = fetch_student_info()
+        save_student_info_to_json(student_info)
         # ljl:如果隐私设置为公开，则加入为企业匹配求职者的知识图谱中(学生id+专业技能)
-
+        # 未确定privacy setting
+        graph = Graph("http://localhost:7474", auth=("neo4j", "XzJEunfiT2G.t2Y"), name="neo4j")
+        user_node = Node("UserID", id=user_id)
+        graph.merge(user_node, "UserID", "id")
+        for skill in data['skills']:  # 直接遍历skills列表
+            # 检查keyword节点是否已存在
+            existing_keyword = graph.nodes.match("Keyword", name=skill).first()
+            if not existing_keyword:
+                keyword_node = Node("Keyword", name=skill)
+                graph.merge(keyword_node, "Keyword", "name")
+            else:
+                keyword_node = existing_keyword
+            # 建立UserID与Keyword之间的HASSKILL关系
+            relationship = Relationship(user_node, "HASSKILL", keyword_node)
+            graph.merge(relationship)
+            
+        # 建立UserID与Keyword之间的HASSKILL关系
+        relationship = Relationship(user_node, "HASSKILL", keyword_node)
+        graph.merge(relationship)
         # grj:调用职位推荐函数(ljl:推荐函数中记得增加创建及存储推荐职位id+契合度的数据库)
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS recommended_jobs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            match REAL NOT NULL,
+            educationMatch REAL NOT NULL,
+            addressMatch REAL NOT NULL,
+            salaryMatch REAL NOT NULL,
+            abilityMatch REAL NOT NULL,
+            FOREIGN KEY(user_id) REFERENCES users(id)
+        );
+        ''')
+        # 创建推荐候选人表
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS recommended_candidates (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            candidate_id INTEGER NOT NULL,
+            job_id INTEGER NOT NULL,
+            match REAL NOT NULL,
+            educationMatch REAL NOT NULL,
+            abilityMatch REAL NOT NULL,
+            FOREIGN KEY(candidate_id) REFERENCES users(id),
+            FOREIGN KEY(job_id) REFERENCES jobs(id)
+        );
+        ''')
+        conn.commit()
+        conn.close()
 
+        
     # 在另一个线程中运行推荐算法和其他耗时操作
     threading.Thread(target=async_process).start()
 
