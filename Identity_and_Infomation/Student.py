@@ -199,8 +199,6 @@ def update_student_info():
 
         # grj:调用职位推荐函数(ljl:推荐函数中记得增加创建及存储推荐职位id+契合度的数据库)
 
-        # 可以在这里处理推荐结果的后续逻辑
-
     # 在另一个线程中运行推荐算法和其他耗时操作
     threading.Thread(target=async_process).start()
 
