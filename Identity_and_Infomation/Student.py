@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify, current_app
 from werkzeug.utils import secure_filename
 import os
 import sqlite3
+import threading
 import pdfplumber
 import re
 import json
@@ -20,11 +21,16 @@ def get_db_connection():
 @students.route('/resume/upload', methods=['POST'])
 def upload_resume():
     user_id = request.form['userId']
+    identity = request.form['identity']
     privacy_setting = request.form['privacySetting']
     file = request.files['file']
 
     if file:
         filename = secure_filename(file.filename)
+        # 检查文件是否为PDF格式
+        if not filename.lower().endswith('.pdf'):
+            return jsonify({'message': '文件格式不正确，请上传PDF文件'}), 422
+
         file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
         file.save(file_path)
 
@@ -35,6 +41,14 @@ def upload_resume():
         # 将提取的信息和隐私设置存储到学生信息表中
         conn = get_db_connection()
         cursor = conn.cursor()
+
+        cursor.execute('SELECT * FROM users WHERE id = ?', (user_id,))
+        user = cursor.fetchone()
+        if not user:
+            return jsonify({'message': '用户不存在'}), 404
+
+        cursor.execute('UPDATE users SET identity = ? WHERE id = ?', (identity, user_id))
+
         # ljl:创建数据表
         cursor.execute('''CREATE TABLE IF NOT EXISTS student_info (
                             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -56,6 +70,7 @@ def upload_resume():
                             advantage text,
                             privacy_setting int check(privacy_setting in(0,1,2)),
                             skills varchar(255),
+                            resume_path TEXT,
                             FOREIGN KEY(user_id) REFERENCES users(id)
                         )''')
 
@@ -69,26 +84,29 @@ def upload_resume():
             cursor.execute('''
                     UPDATE student_info SET name = ?, sex = ?, loweStsalary = ?, higheStsalary = ?,
                     phone = ?, education = ?, year = ?, intention = ?, intentionCity = ?, email = ?, 
-                    profession = ?, educationExperience = ?, internship = ?, project = ?, advantage = ?, privacy_setting = ?, skills = ?
+                    profession = ?, educationExperience = ?, internship = ?, project = ?, advantage = ?,
+                    resume_path = ?, privacy_setting = ?, skills = ?
                     WHERE user_id = ?
                 ''', (resume_info.get('姓名'), resume_info.get('性别'), resume_info.get('期望薪资下限'),
                       resume_info.get('期望薪资上限'), resume_info.get('联系电话'),
                       resume_info.get('学历'), resume_info.get('年龄'), resume_info.get('求职意向'),
                       resume_info.get('意向城市'), resume_info.get('电子邮箱'),
                       resume_info.get('专业'), resume_info.get('教育经历'), resume_info.get('工作经历'),
-                      resume_info.get('项目经历'), resume_info.get('个人优势'), privacy_setting,
+                      resume_info.get('项目经历'), resume_info.get('个人优势'), file_path, privacy_setting,
                       resume_info.get('专业技能'), user_id))
         else:
             # ljl:插入数据
             cursor.execute('''
-                        INSERT INTO student_info (user_id, name,sex,lowestSalary, highestSalary,phone,education,year,intention,intentionCity,email,profession,educationExperience,internship,project,advantage,privacy_setting,skills)
-                        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)''',
+                        INSERT INTO student_info (user_id, name,sex,lowestSalary, highestSalary,phone,education,
+                        year,intention,intentionCity,email,profession,educationExperience,internship,project,advantage,
+                        resume_path,privacy_setting,skills)
+                        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)''',
                            (user_id, resume_info.get('姓名'), resume_info.get('性别'), resume_info.get('期望薪资下限'),
                             resume_info.get('期望薪资上限'), resume_info.get('联系电话'),
                             resume_info.get('学历'), resume_info.get('年龄'), resume_info.get('求职意向'),
                             resume_info.get('意向城市'), resume_info.get('电子邮箱'),
                             resume_info.get('专业'), resume_info.get('教育经历'), resume_info.get('工作经历'),
-                            resume_info.get('项目经历'), resume_info.get('个人优势'), privacy_setting,
+                            resume_info.get('项目经历'), resume_info.get('个人优势'), file_path, privacy_setting,
                             resume_info.get('专业技能')))
         conn.commit()
 
@@ -172,8 +190,18 @@ def update_student_info():
                 UPDATE student_info SET skills = ?
                 WHERE user_id = ?
             ''', (data['skills'], user_id))
-
     conn.commit()
+
+    def async_process():
+        # ljl:将学生信息转换为json文件
+
+        # grj:调用职位推荐函数(ljl:推荐函数中记得增加创建及存储推荐职位id+契合度的数据库)
+
+        # 可以在这里处理推荐结果的后续逻辑
+
+    # 在另一个线程中运行推荐算法和其他耗时操作
+    threading.Thread(target=async_process).start()
+
     return jsonify({'message': '信息更新成功'}), 200
 
 
