@@ -27,7 +27,14 @@ def create_company_info():
     cursor.execute('''CREATE TABLE IF NOT EXISTS company_info (
                                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                                 user_id INTEGER NOT NULL,
-                                
+                                name nchar(5),
+                                job nchar(30),
+                                description nvarchar(255),
+                                education nchar(4),
+                                manager nchar(10),
+                                salary char(20),
+                                address nvarchar(30),
+                                link varchar(150)
                                 FOREIGN KEY(user_id) REFERENCES users(id)
                             )''')
 
