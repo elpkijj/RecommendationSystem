@@ -214,25 +214,25 @@ def update_student_info():
         student_info = fetch_student_info()
         save_student_info_to_json(student_info)
         # ljl:如果隐私设置为公开，则加入为企业匹配求职者的知识图谱中(学生id+专业技能)
-        # 未确定privacy setting
-        graph = Graph("http://localhost:7474", auth=("neo4j", "XzJEunfiT2G.t2Y"), name="neo4j")
-        user_node = Node("UserID", id=user_id)
-        graph.merge(user_node, "UserID", "id")
-        for skill in data['skills']:  # 直接遍历skills列表
-            # 检查keyword节点是否已存在
-            existing_keyword = graph.nodes.match("Keyword", name=skill).first()
-            if not existing_keyword:
-                keyword_node = Node("Keyword", name=skill)
-                graph.merge(keyword_node, "Keyword", "name")
-            else:
-                keyword_node = existing_keyword
+        if request.form['privacySetting']==0:
+            graph = Graph("http://localhost:7474", auth=("neo4j", "XzJEunfiT2G.t2Y"), name="neo4j")
+            user_node = Node("UserID", id=user_id)
+            graph.merge(user_node, "UserID", "id")
+            for skill in data['skills']:  # 直接遍历skills列表
+                # 检查keyword节点是否已存在
+                existing_keyword = graph.nodes.match("Keyword", name=skill).first()
+                if not existing_keyword:
+                    keyword_node = Node("Keyword", name=skill)
+                    graph.merge(keyword_node, "Keyword", "name")
+                else:
+                    keyword_node = existing_keyword
+                # 建立UserID与Keyword之间的HASSKILL关系
+                relationship = Relationship(user_node, "HASSKILL", keyword_node)
+                graph.merge(relationship)
+                
             # 建立UserID与Keyword之间的HASSKILL关系
             relationship = Relationship(user_node, "HASSKILL", keyword_node)
             graph.merge(relationship)
-            
-        # 建立UserID与Keyword之间的HASSKILL关系
-        relationship = Relationship(user_node, "HASSKILL", keyword_node)
-        graph.merge(relationship)
         # grj:调用职位推荐函数(ljl:推荐函数中记得增加创建及存储推荐职位id+契合度的数据库)
         conn = get_db_connection()
         cursor = conn.cursor()
