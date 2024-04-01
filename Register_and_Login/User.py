@@ -117,21 +117,3 @@ def validate_sms_code(phone, code):
     # 验证码校验逻辑（需实现）
     return True
 
-
-@users.route('/users/update-identity', methods=['PUT'])
-def update_identity():
-    data = request.get_json()
-    user_id = data['userId']
-    identity = data['identity']
-
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute('SELECT * FROM users WHERE id = ?', (user_id,))
-    user = cursor.fetchone()
-
-    if not user:
-        return jsonify({'message': '用户不存在'}), 404
-
-    cursor.execute('UPDATE users SET identity = ? WHERE id = ?', (identity, user_id))
-    conn.commit()
-    return jsonify({'message': '身份更新成功'}), 200
