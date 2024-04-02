@@ -194,24 +194,24 @@ def update_student_info():
     conn.commit()
 
     # ljl修改：加入了两个函数供转成json文件使用
-    def fetch_student_info():
-    conn = sqlite3.connect('Information.db')
-    conn.row_factory = sqlite3.Row
-    cursor = conn.cursor()
-    cursor.execute('SELECT * FROM student_info')
-    student_info_rows = cursor.fetchall()
-    student_info_list = [dict(row) for row in student_info_rows]
-    conn.close()
-    return student_info_list
+    def fetch_student_info(user_id):
+        conn = sqlite3.connect('Information.db')
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        cursor.execute('SELECT user_id, skills FROM student_info WHERE user_id = ?', (user_id,))
+        student_info_rows = cursor.fetchone()
+        student_info_list = [dict(row) for row in student_info_rows]
+        conn.close()
+        return student_info_list
     
     def save_student_info_to_json(student_info, filename='student_info.json'):
-    with open(filename, 'w', encoding='utf-8') as file:
-        json.dump(student_info, file, ensure_ascii=False, indent=4)
+        with open(filename, 'w', encoding='utf-8') as file:
+            json.dump(student_info, file, ensure_ascii=False, indent=4)
 
     def async_process():
         # ljl:将学生信息转换为json文件
         #（在上面加了fetch_student_info和save_student_info_to_json函数）
-        student_info = fetch_student_info()
+        student_info = fetch_student_info(user_id)
         save_student_info_to_json(student_info)
         # ljl:如果隐私设置为公开，则加入为企业匹配求职者的知识图谱中(学生id+专业技能)
         if request.form['privacySetting']==0:
@@ -256,8 +256,6 @@ def update_student_info():
             match REAL NOT NULL,
             educationMatch REAL NOT NULL,
             abilityMatch REAL NOT NULL,
-            FOREIGN KEY(candidate_id) REFERENCES users(id),
-            FOREIGN KEY(job_id) REFERENCES jobs(id)
         );
         ''')
         conn.commit()
