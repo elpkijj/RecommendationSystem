@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify, current_app
 from werkzeug.utils import secure_filename
+from newRec import recommend_jobs
 import os
 import sqlite3
 import threading
@@ -222,7 +223,7 @@ def update_student_info():
                 # 建立UserID与Keyword之间的HASSKILL关系
                 relationship = Relationship(user_node, "HASSKILL", keyword_node)
                 graph.merge(relationship)
-                
+
         # grj:调用职位推荐函数(ljl:推荐函数中记得增加创建及存储推荐职位id+契合度的数据库)
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -253,6 +254,53 @@ def update_student_info():
             FOREIGN KEY(candidate_id) REFERENCES student_info(id)
         );
         ''')
+
+        # 调用函数并获取返回的数据
+        resume_data_path='resumes.json'
+        all_info_path='all_info.json'
+        city_location_path='city_coordinates_cache.json'
+        all_scores = recommend_jobs(resume_data_path, all_info_path, city_location_path, top_n=30)
+
+        # 遍历返回的数据并插入数据库表中（这里有一点不确定，架设了all_score有多项数据）
+        for score_data in all_scores:
+            # 提取各项数据
+            work_id = score_data["work_id"]
+            weighted_score = score_data["weighted_score"]
+            skill_score = score_data["skill_score"]
+            education_score = score_data["education_score"]
+            salary_score = score_data["salary_score"]
+            city_score = score_data["city_score"]
+
+            # 执行插入操作
+            cursor.execute('''
+                INSERT INTO recommended_jobs (job_id, weighted_score, skill_score, education_score, salary_score, city_score)
+                VALUES (?, ?, ?, ?, ?, ?)
+            ''', (work_id, weighted_score, skill_score, education_score, salary_score, city_score))
+
+        # 执行数据库查询
+        cursor.execute('SELECT * FROM recommended_jobs where id=?',(user_id,))
+
+        # 获取查询结果
+        rows = cursor.fetchone()
+
+        # 将查询结果转换为字典列表
+        results = []
+        for row in rows:
+            result = {
+                'work_id': row[0],
+                'weighted_score': row[1],
+                'skill_score': row[2],
+                'education_score': row[3],
+                'salary_score': row[4],
+                'city_score': row[5]
+            }
+            results.append(result)
+
+        # 将字典列表转换为JSON格式的字符串
+        json_data = json.dumps(results)
+
+        # 打印JSON数据（或者根据需要进行其他处理）
+        print(json_data)
         conn.commit()
         conn.close()
 
@@ -267,7 +315,9 @@ def fetch_student_info(user_id):
     conn = sqlite3.connect('Information.db')
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
-    cursor.execute('SELECT user_id,intentionCity,lowestSalary,highestSalary,skills,education FROM student_info where user_id=?',(user_id,))
+    cursor.execute(
+        'SELECT user_id,intentionCity,lowestSalary,highestSalary,skills,education FROM student_info where user_id=?',
+        (user_id,))
     student_info_rows = cursor.fetchone()
     student_info_list = [dict(row) for row in student_info_rows]
     conn.close()

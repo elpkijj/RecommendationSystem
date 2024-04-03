@@ -218,7 +218,7 @@ def recommend_jobs(resume_data_path, all_info_path, city_location_path,top_n=30)
         })
     return all_scores
 # 调用推荐函数
-resume_data_path = 'resume.json'
-all_info_path = 'all_info.json'
-city_location_path='city_coordinates_cache.json'
+resume_data_path = '../job_Recommendation/resume.json'
+all_info_path = '../job_Recommendation/all_info.json'
+city_location_path= '../job_Recommendation/city_coordinates_cache.json'
 recommend_jobs(resume_data_path, all_info_path,city_location_path,30)
