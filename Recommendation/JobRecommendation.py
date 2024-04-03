@@ -1,7 +1,6 @@
 from flask import Flask, request, jsonify, Blueprint
 import sqlite3
 
-app = Flask(__name__)
 jobs = Blueprint('jobs', __name__)
 
 DATABASE = 'Information.db'

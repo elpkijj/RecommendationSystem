@@ -7,6 +7,7 @@ from Identity_and_Infomation.Student import students
 from Identity_and_Infomation.Company import companies
 from Recommendation.JobRecommendation import jobs
 from Recommendation.TalentRecommendation import talents
+from Recommendation.Resume import resumes
 from sms import sms
 
 app = Flask(__name__)
@@ -19,6 +20,7 @@ app.register_blueprint(students)
 app.register_blueprint(companies)
 app.register_blueprint(jobs)
 app.register_blueprint(talents)
+app.register_blueprint(resumes)
 app.register_blueprint(sms)
 
 

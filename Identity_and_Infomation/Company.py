@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify, Blueprint
 import sqlite3
 import threading
 from py2neo import Graph, Node, Relationship
+import json
 
 companies = Blueprint('companies', __name__)
 DATABASE = 'Information.db'
@@ -11,6 +12,29 @@ def get_db_connection():
     conn = sqlite3.connect(DATABASE)
     conn.row_factory = sqlite3.Row
     return conn
+
+
+@companies.route('/companies/get-info/<int:user_id>', methods=['GET'])
+def get_company_info(user_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+            SELECT name, job, description, education,
+                   manager, salary, address, link
+            FROM company_info WHERE user_id = ?
+        ''', (user_id,))
+    info = cursor.fetchone()
+
+    if not info:
+        return jsonify({'message': '用户信息不存在'}), 404
+
+    # 获取列名
+    columns = [column[0] for column in cursor.description]
+    # 将每个查询结果转换为字典
+    info_list = [dict(zip(columns, i)) for i in info]
+
+    conn.close()
+    return jsonify(info_list), 200
 
 
 @companies.route('/companies/create-info', methods=['POST'])
@@ -65,8 +89,8 @@ def create_company_info():
     def async_process():
         # ljl:将企业信息转换为json文件
         data = request.get_json()
-        user_id=data['userID']
-        company_info=fetch_company_info(user_id)
+        user_id = data['userID']
+        company_info = fetch_company_info(user_id)
         save_company_info_to_json(company_info)
         # ljl:加入为学生匹配职位的知识图谱中(职位id+职位要求)
         graph = Graph("http://localhost:7474", auth=("neo4j", "XzJEunfiT2G.t2Y"), name="neo4j")
@@ -82,7 +106,7 @@ def create_company_info():
 
         # 为行中的每个关键词创建keyword节点并建立关系
         for keyword in keywords:
-            if keyword in data['description']: 
+            if keyword in data['description']:
                 keyword_node = graph.nodes.match("Keyword", name=keyword).first()
                 if not keyword_node:
                     keyword_node = Node("Keyword", name=keyword)
@@ -96,12 +120,13 @@ def create_company_info():
 
     return jsonify({'message': '企业信息提交成功'}), 200
 
-#ljl修改
+
+# ljl修改
 def fetch_company_info(user_id):
     conn = sqlite3.connect('Information.db')
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
-    cursor.execute('SELECT * FROM company_info where user_id=?',(user_id,))
+    cursor.execute('SELECT * FROM company_info where user_id=?', (user_id,))
     company_info_rows = cursor.fetchone()
     company_info_list = [dict(row) for row in company_info_rows]
     conn.close()
@@ -111,4 +136,3 @@ def fetch_company_info(user_id):
 def save_company_info_to_json(company_info, filename='all_info.json'):
     with open(filename, 'a', encoding='utf-8') as file:
         json.dump(company_info, file, ensure_ascii=False, indent=4)
-

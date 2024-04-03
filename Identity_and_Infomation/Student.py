@@ -132,9 +132,13 @@ def get_student_info(user_id):
     if not info:
         return jsonify({'message': '用户信息不存在'}), 404
 
-    # 将查询结果转换为字典
-    info_dict = {k: info[k] for k in info.keys()}
-    return jsonify(info_dict), 200
+    # 获取列名
+    columns = [column[0] for column in cursor.description]
+    # 将每个查询结果转换为字典
+    info_list = [dict(zip(columns, i)) for i in info]
+
+    conn.close()
+    return jsonify(info_list), 200
 
 
 @students.route('/students/update-info', methods=['PUT'])

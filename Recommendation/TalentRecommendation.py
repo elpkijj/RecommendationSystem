@@ -1,7 +1,6 @@
 from flask import Flask, request, jsonify, Blueprint
 import sqlite3
 
-app = Flask(__name__)
 talents = Blueprint('talents', __name__)
 
 DATABASE = 'Information.db'
@@ -17,10 +16,9 @@ def get_db_connection():
 def get_recommended_talents(user_id):
     conn = get_db_connection()
     cursor = conn.cursor()
-    # name, sex, lowestSalary, highestSalary, phone, education, year, intention, intentionsity, email, profession, educationExperience, internship, project, advantage, skills
     # 查询推荐人才ID和匹配度
     cursor.execute('''
-               SELECT si.name, si.sex, si.lowestSalary, si.highestSalary, si.phone, si.education, si.year, si.intention, si.intentionCity, si.email, si.profession, si.educationExperience, si.internship, si.project, si.advantage, si.skills,
+               SELECT si.id, si.name, si.sex, si.lowestSalary, si.highestSalary, si.phone, si.education, si.year, si.intention, si.intentionCity, si.email, si.profession, si.educationExperience, si.internship, si.project, si.advantage, si.skills,
                       rc.match, rc.educationMatch, rc.abilityMatch
                FROM recommended_candidate rc
                JOIN student_info si ON rc.candidate_id = si.id
@@ -61,7 +59,7 @@ def sort_candidates(user_id, criteria):
 
     # 筛选并查询推荐职位ID和匹配度
     sql_query = '''
-                   SELECT si.name, si.sex, si.lowestSalary, si.highestSalary, si.phone, si.education, si.year, si.intention, si.intentionCity, si.email, si.profession, si.educationExperience, si.internship, si.project, si.advantage, si.skills,
+                   SELECT si.id, si.name, si.sex, si.lowestSalary, si.highestSalary, si.phone, si.education, si.year, si.intention, si.intentionCity, si.email, si.profession, si.educationExperience, si.internship, si.project, si.advantage, si.skills,
                           rc.match, rc.educationMatch, rc.abilityMatch
                    FROM recommended_candidate rc
                    JOIN student_info si ON rc.candidate_id = si.id
