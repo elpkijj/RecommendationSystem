@@ -47,19 +47,30 @@ def calculate_skills_match_percentage(resume_skills, work_keywords):
 def calculate_salary_match_percentage(dream_salary_str, work_salary_str):
     if work_salary_str == "Unknown":
         return 0.02  # 将2%表示为0.02，以保持返回值的一致性
-    """根据新规则计算薪资匹配度"""
-    dream_salary = parse_salary(dream_salary_str)[0]  # 解析期望薪资
-    _, max_work_salary = parse_salary(work_salary_str)  # 解析工作薪资范围的最大值
-    if dream_salary <= max_work_salary:
-        # 期望薪资小于等于工作薪资范围的最大值
-        match_percentage = 1
+
+    min_dream_salary, max_dream_salary = parse_salary(dream_salary_str)
+    min_work_salary, max_work_salary = parse_salary(work_salary_str)
+
+    # 完全匹配的情况
+    if max_dream_salary <= max_work_salary and min_dream_salary >= min_work_salary:
+        return 1
+    elif max_work_salary < min_dream_salary:
+        # 期望薪资范围完全高于岗位薪资范围
+        difference_ratio = (min_dream_salary - max_work_salary) / max_work_salary
+    elif max_dream_salary < min_work_salary:
+        # 岗位薪资范围完全高于期望薪资范围
+        difference_ratio = (min_work_salary - max_dream_salary) / max_dream_salary
     else:
-        # 期望薪资大于工作薪资范围的最大值
-        # 引入平滑因子，减少匹配度下降的速度
-        smooth_factor = 0.5  # 平滑因子可以根据实际需要调整
-        difference_ratio = (dream_salary - max_work_salary) / max_work_salary
-        match_percentage = 1 - (difference_ratio * smooth_factor)
-        match_percentage = max(0.01, match_percentage)  # 使用0.01作为最低匹配度，避免出现0%
+        # 有交集的情况，但不是完全匹配
+        intersection = min(max_dream_salary, max_work_salary) - max(min_dream_salary, min_work_salary)
+        total_range = max(max_dream_salary, max_work_salary) - min(min_dream_salary, min_work_salary)
+        match_percentage = intersection / total_range
+        return match_percentage
+
+    # 使用平滑因子来调整匹配度
+    smooth_factor = 0.5
+    match_percentage = 1 - (difference_ratio * smooth_factor)
+    match_percentage = max(0.01, match_percentage)  # 使用0.01作为最低匹配度
 
     return match_percentage
 def location_match_percentage(resume_city, work_city,city_coordinates_cache):
