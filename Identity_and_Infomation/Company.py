@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify, Blueprint
 import sqlite3
 import threading
-import py2neo
+from py2neo import Graph, Node, Relationship
 
 companies = Blueprint('companies', __name__)
 DATABASE = 'Information.db'
