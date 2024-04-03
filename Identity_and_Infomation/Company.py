@@ -72,6 +72,10 @@ def create_company_info():
         graph = Graph("http://localhost:7474", auth=("neo4j", "XzJEunfiT2G.t2Y"), name="neo4j")
         data = request.get_json()
         identity = data['user_id']
+        # 添加关键词列表
+        with open('keywords.txt', 'r', encoding='utf-8') as file:
+            keywords = file.read().split('、')
+
         # 创建identity节点
         identity_node = Node("Identity", name=identity, responsibility=data['description'])
         graph.merge(identity_node, "Identity", "name")
