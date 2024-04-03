@@ -198,7 +198,9 @@ def update_student_info():
     def async_process():
         # ljl:将学生信息转换为json文件
         # （在上面加了fetch_student_info和save_student_info_to_json函数）
-        student_info = fetch_student_info()
+        data = request.get_json()
+        user_id = data['userId']
+        student_info = fetch_student_info(user_id)
         save_student_info_to_json(student_info)
         # ljl:如果隐私设置为公开，则加入为企业匹配求职者的知识图谱中(学生id+专业技能)
         if request.form['privacySetting'] == 0:
@@ -264,8 +266,8 @@ def fetch_student_info():
     conn = sqlite3.connect('Information.db')
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
-    cursor.execute('SELECT * FROM student_info')
-    student_info_rows = cursor.fetchall()
+    cursor.execute('SELECT user_id,skills FROM student_info where user_id=?',(user_id,))
+    student_info_rows = cursor.fetchone()
     student_info_list = [dict(row) for row in student_info_rows]
     conn.close()
     return student_info_list
