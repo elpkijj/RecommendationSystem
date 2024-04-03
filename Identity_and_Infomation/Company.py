@@ -69,21 +69,22 @@ def create_company_info():
         company_info=fetch_company_info(user_id)
         save_company_info_to_json(company_info)
         # ljl:加入为学生匹配职位的知识图谱中(职位id+职位要求)
-            graph = Graph("http://localhost:7474", auth=("neo4j", "XzJEunfiT2G.t2Y"), name="neo4j")
-            identity = user_id
-            # 创建identity节点
-            identity_node = Node("Identity", name=identity, responsibility=description)
-            graph.merge(identity_node, "Identity", "name")
+        graph = Graph("http://localhost:7474", auth=("neo4j", "XzJEunfiT2G.t2Y"), name="neo4j")
+        data = request.get_json()
+        identity = data['user_id']
+        # 创建identity节点
+        identity_node = Node("Identity", name=identity, responsibility=data['description'])
+        graph.merge(identity_node, "Identity", "name")
 
-            # 为行中的每个关键词创建keyword节点并建立关系
-            for keyword in keywords:
-                if keyword in description: 
-                    keyword_node = graph.nodes.match("Keyword", name=keyword).first()
-                    if not keyword_node:
-                        keyword_node = Node("Keyword", name=keyword)
-                        graph.merge(keyword_node, "Keyword", "name")
-                    relationship = Relationship(identity_node, "CONTAINS", keyword_node)
-                    graph.merge(relationship)
+        # 为行中的每个关键词创建keyword节点并建立关系
+        for keyword in keywords:
+            if keyword in data['description']: 
+                keyword_node = graph.nodes.match("Keyword", name=keyword).first()
+                if not keyword_node:
+                    keyword_node = Node("Keyword", name=keyword)
+                    graph.merge(keyword_node, "Keyword", "name")
+                relationship = Relationship(identity_node, "CONTAINS", keyword_node)
+                graph.merge(relationship)
         # grj:调用人才推荐函数(ljl:推荐函数中记得增加创建及存储推荐人才（学生）id+契合度的数据库)
 
     # 在另一个线程中运行推荐算法和其他耗时操作
