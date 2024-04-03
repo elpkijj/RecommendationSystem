@@ -3,6 +3,7 @@ import sqlite3
 import threading
 from py2neo import Graph, Node, Relationship
 import json
+from loginRec import recommend_resumes
 
 companies = Blueprint('companies', __name__)
 DATABASE = 'Information.db'
@@ -114,7 +115,12 @@ def create_company_info():
                 relationship = Relationship(identity_node, "CONTAINS", keyword_node)
                 graph.merge(relationship)
         # grj:调用人才推荐函数(ljl:推荐函数中记得增加创建及存储推荐人才（学生）id+契合度的数据库)
-
+        resumes_data_path = 'resumes.json'
+        work_id = 63  
+        # 假设的特定工作ID
+        all_info_path = 'all_info.json'
+        city_location_path= 'city_coordinates_cache.json'
+        xxxx= recommend_resumes(resumes_data_path, work_id, all_info_path,city_location_path)
     # 在另一个线程中运行推荐算法和其他耗时操作
     threading.Thread(target=async_process).start()
 
