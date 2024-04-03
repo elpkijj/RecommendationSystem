@@ -196,29 +196,30 @@ def recommend_jobs(resume_data_path, all_info_path, city_location_path,top_n=30)
         city_scores [work_id]= location_match_percentage(resume_city, work_address,city_coordinates_cache)
         scores[work_id]=0.4*skill_scores[work_id]+0.2*edu_scores[work_id]+0.2*salary_scores[work_id]+0.2*city_scores[work_id]
 
-    i=0
-    # 推荐结果输出
-    for work_id, skill_score in sorted(scores.items(), key=lambda item: item[1], reverse=True)[:top_n]:
-        work_info_item = work_info.get(str(work_id), {})
-        work_keywords = work_info_item.get('Keywords', [])
-        work_salary = work_info_item.get('Salary_Range', "Unknown")
-        work_address = work_info_item.get('City', "Unknown")
-        work_education = work_info_item.get('Education_Requirement', "Unknown")
-        work_details = work_info_item.get('Responsibility')
-        if work_address == "Unknown" or work_salary == "Unknown" or work_education == "Unknown":
-            continue
+    # i=0
+    # # 推荐结果输出
+    # for work_id, skill_score in sorted(scores.items(), key=lambda item: item[1], reverse=True)[:top_n]:
+    #     work_info_item = work_info.get(str(work_id), {})
+    #     work_keywords = work_info_item.get('Keywords', [])
+    #     work_salary = work_info_item.get('Salary_Range', "Unknown")
+    #     work_address = work_info_item.get('City', "Unknown")
+    #     work_education = work_info_item.get('Education_Requirement', "Unknown")
+    #     work_details = work_info_item.get('Responsibility')
+    #     if work_address == "Unknown" or work_salary == "Unknown" or work_education == "Unknown":
+    #         continue
 
-        skill_percentage = skill_scores[work_id]
-        salary_percentage = salary_scores[work_id]
-        city_percentage =city_scores[work_id]
-        education_percentage =edu_scores[work_id]
-        weighted_score = scores[work_id]
-        i+=1
-        #ljl
-        print(work_id, weighted_score, skill_percentage, salary_percentage, city_percentage, education_percentage,)
+    #     skill_percentage = skill_scores[work_id]
+    #     salary_percentage = salary_scores[work_id]
+    #     city_percentage =city_scores[work_id]
+    #     education_percentage =edu_scores[work_id]
+    #     weighted_score = scores[work_id]
+    #     i+=1
+    #     #ljl
+    #     print(work_id, weighted_score, skill_percentage, salary_percentage, city_percentage, education_percentage,)
     # 五个契合度的存储及输出
+    sorted_scores = sorted(scores.items(), key=lambda x: x[1], reverse=True)
     all_scores = []
-    for work_id in scores:
+    for work_id in sorted_scores:
         all_scores.append({
             "work_id": work_id,
             "weighted_score": scores.get(work_id, 0),
