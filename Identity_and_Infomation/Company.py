@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify, Blueprint
 import sqlite3
 import threading
+import py2neo
 
 companies = Blueprint('companies', __name__)
 DATABASE = 'Information.db'
@@ -68,6 +69,7 @@ def create_company_info():
         company_info=fetch_company_info(user_id)
         save_company_info_to_json(company_info)
         # ljl:加入为学生匹配职位的知识图谱中(职位id+职位要求)
+            graph = Graph("http://localhost:7474", auth=("neo4j", "XzJEunfiT2G.t2Y"), name="neo4j")
             identity = user_id
             # 创建identity节点
             identity_node = Node("Identity", name=identity, responsibility=description)
