@@ -83,8 +83,8 @@ def location_match_percentage(resume_city, work_city,city_coordinates_cache):
     else:
         preference_1 = 0
     # 获取工作城市和居住城市的经纬度
-    work_coordinates = city_coordinates_cache.get(work_city,city_coordinates_cache)
-    resume_coordinates = city_coordinates_cache.get(resume_city,city_coordinates_cache)
+    work_coordinates =get_coordinates_cached(work_city,city_coordinates_cache)
+    resume_coordinates = get_coordinates_cached(resume_city,city_coordinates_cache)
     if work_coordinates and resume_coordinates:
         # 计算城市之间的地理距离
         distance_km = geodesic(work_coordinates, resume_coordinates).kilometers
@@ -109,23 +109,7 @@ def calculate_location_match_percentage(resume_city, work_city):
         preference_1 = 1
     else:
         preference_1 = 0
-    # 获取工作城市和居住城市的经纬度
-    # work_coordinates = get_coordinates(work_city)
-    # resume_coordinates = get_coordinates(resume_city)
-    # if work_coordinates and resume_coordinates:
-    #     # 计算城市之间的地理距离
-    #     distance_km = geodesic(work_coordinates, resume_coordinates).kilometers
-    #
-    #     # 将距离转换为评分（距离越近，评分越高）
-    #     # 这里采用一个简单的线性转换
-    #     max_distance_km = 5000  # 假设最大距离为5000公里
-    #     min_score = 0  # 最低评分
-    #     max_score = 1  # 最高评分
-    #
-    #     # 线性转换
-    #     score2 = max_score - (distance_km / max_distance_km) * (max_score - min_score)
-    #     score2 = max(min_score, min(score2, max_score))  # 确保评分在合理范围内
-    # score=0.5*preference_1+0.5*score2
+
     return preference_1
 def calculate_education_match_percentage(resume_education, work_education):
     # 定义学历与数值权重的映射
@@ -188,35 +172,13 @@ def recommend_jobs(resume_data_path, all_info_path, city_location_path,top_n=30)
         work_skill = work_info[str(work_id)]['Keywords']
         work_salary = work_info[str(work_id)]['Salary_Range']
         work_address = work_info[str(work_id)]['City']
-        if calculate_location_match_percentage(resume_city, work_address) ==0:
-            continue
+
         edu_scores[work_id]=calculate_education_match_percentage(resume_education,work_education)
         skill_scores[work_id] = calculate_skills_match_percentage(resume_skills, work_skill)
         salary_scores[work_id] = calculate_salary_match_percentage(dream_salary, work_salary)
         city_scores [work_id]= location_match_percentage(resume_city, work_address,city_coordinates_cache)
         scores[work_id]=0.4*skill_scores[work_id]+0.2*edu_scores[work_id]+0.2*salary_scores[work_id]+0.2*city_scores[work_id]
 
-    # i=0
-    # # 推荐结果输出
-    # for work_id, skill_score in sorted(scores.items(), key=lambda item: item[1], reverse=True)[:top_n]:
-    #     work_info_item = work_info.get(str(work_id), {})
-    #     work_keywords = work_info_item.get('Keywords', [])
-    #     work_salary = work_info_item.get('Salary_Range', "Unknown")
-    #     work_address = work_info_item.get('City', "Unknown")
-    #     work_education = work_info_item.get('Education_Requirement', "Unknown")
-    #     work_details = work_info_item.get('Responsibility')
-    #     if work_address == "Unknown" or work_salary == "Unknown" or work_education == "Unknown":
-    #         continue
-
-    #     skill_percentage = skill_scores[work_id]
-    #     salary_percentage = salary_scores[work_id]
-    #     city_percentage =city_scores[work_id]
-    #     education_percentage =edu_scores[work_id]
-    #     weighted_score = scores[work_id]
-    #     i+=1
-    #     #ljl
-    #     print(work_id, weighted_score, skill_percentage, salary_percentage, city_percentage, education_percentage,)
-    # 五个契合度的存储及输出
     sorted_scores = sorted(scores.items(), key=lambda x: x[1], reverse=True)
     all_scores = []
     for work_id in sorted_scores:
