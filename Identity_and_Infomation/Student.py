@@ -110,6 +110,7 @@ def upload_resume():
                             resume_info.get('项目经历'), resume_info.get('个人优势'), file_path, privacy_setting,
                             resume_info.get('专业技能')))
         conn.commit()
+        conn.close()
 
         return jsonify({'message': '简历上传成功', 'resume_info': resume_info}), 200
     else:
@@ -131,9 +132,13 @@ def get_student_info(user_id):
     if not info:
         return jsonify({'message': '用户信息不存在'}), 404
 
-    # 将查询结果转换为字典
-    info_dict = {k: info[k] for k in info.keys()}
-    return jsonify(info_dict), 200
+    # 获取列名
+    columns = [column[0] for column in cursor.description]
+    # 将每个查询结果转换为字典
+    info_list = [dict(zip(columns, i)) for i in info]
+
+    conn.close()
+    return jsonify(info_list), 200
 
 
 @students.route('/students/update-info', methods=['PUT'])
@@ -192,29 +197,17 @@ def update_student_info():
                 WHERE user_id = ?
             ''', (data['skills'], user_id))
     conn.commit()
-
-    # ljl修改：加入了两个函数供转成json文件使用
-    def fetch_student_info():
-    conn = sqlite3.connect('Information.db')
-    conn.row_factory = sqlite3.Row
-    cursor = conn.cursor()
-    cursor.execute('SELECT * FROM student_info')
-    student_info_rows = cursor.fetchall()
-    student_info_list = [dict(row) for row in student_info_rows]
     conn.close()
-    return student_info_list
-    
-    def save_student_info_to_json(student_info, filename='student_info.json'):
-    with open(filename, 'w', encoding='utf-8') as file:
-        json.dump(student_info, file, ensure_ascii=False, indent=4)
 
     def async_process():
         # ljl:将学生信息转换为json文件
-        #（在上面加了fetch_student_info和save_student_info_to_json函数）
-        student_info = fetch_student_info()
+        # （在上面加了fetch_student_info和save_student_info_to_json函数）
+        data = request.get_json()
+        user_id = data['userId']
+        student_info = fetch_student_info(user_id)
         save_student_info_to_json(student_info)
         # ljl:如果隐私设置为公开，则加入为企业匹配求职者的知识图谱中(学生id+专业技能)
-        if request.form['privacySetting']==0:
+        if request.form['privacySetting'] == 0:
             graph = Graph("http://localhost:7474", auth=("neo4j", "XzJEunfiT2G.t2Y"), name="neo4j")
             user_node = Node("UserID", id=user_id)
             graph.merge(user_node, "UserID", "id")
@@ -230,44 +223,60 @@ def update_student_info():
                 relationship = Relationship(user_node, "HASSKILL", keyword_node)
                 graph.merge(relationship)
                 
-            # 建立UserID与Keyword之间的HASSKILL关系
-            relationship = Relationship(user_node, "HASSKILL", keyword_node)
-            graph.merge(relationship)
         # grj:调用职位推荐函数(ljl:推荐函数中记得增加创建及存储推荐职位id+契合度的数据库)
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute('''
         CREATE TABLE IF NOT EXISTS recommended_jobs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            job_id INTEGER NOT NULL,
             match REAL NOT NULL,
             educationMatch REAL NOT NULL,
             addressMatch REAL NOT NULL,
             salaryMatch REAL NOT NULL,
             abilityMatch REAL NOT NULL,
             FOREIGN KEY(user_id) REFERENCES users(id)
+            FOREIGN KEY(job_id) REFERENCES company_info(id)
         );
         ''')
         # 创建推荐候选人表
         cursor.execute('''
         CREATE TABLE IF NOT EXISTS recommended_candidates (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
             candidate_id INTEGER NOT NULL,
-            job_id INTEGER NOT NULL,
             match REAL NOT NULL,
             educationMatch REAL NOT NULL,
             abilityMatch REAL NOT NULL,
-            FOREIGN KEY(candidate_id) REFERENCES users(id),
-            FOREIGN KEY(job_id) REFERENCES jobs(id)
+            FOREIGN KEY(user_id) REFERENCES users(id),
+            FOREIGN KEY(candidate_id) REFERENCES student_info(id)
         );
         ''')
         conn.commit()
         conn.close()
 
-        
     # 在另一个线程中运行推荐算法和其他耗时操作
     threading.Thread(target=async_process).start()
 
     return jsonify({'message': '信息更新成功'}), 200
+
+
+# ljl修改：加入了两个函数供转成json文件使用
+def fetch_student_info(user_id):
+    conn = sqlite3.connect('Information.db')
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    cursor.execute('SELECT user_id,intentionCity,lowestSalary,highestSalary,skills,education FROM student_info where user_id=?',(user_id,))
+    student_info_rows = cursor.fetchone()
+    student_info_list = [dict(row) for row in student_info_rows]
+    conn.close()
+    return student_info_list
+
+
+def save_student_info_to_json(student_info, filename='resume.json'):
+    with open(filename, 'a', encoding='utf-8') as file:
+        json.dump(student_info, file, ensure_ascii=False, indent=4)
 
 
 def read_pdf_file(filename):
