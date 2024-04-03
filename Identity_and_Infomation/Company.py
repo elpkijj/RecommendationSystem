@@ -96,14 +96,14 @@ def fetch_company_info(user_id):
     conn = sqlite3.connect('Information.db')
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
-    cursor.execute('SELECT user_id,description FROM company_info where user_id=?',(user_id,))
+    cursor.execute('SELECT * FROM company_info where user_id=?',(user_id,))
     company_info_rows = cursor.fetchone()
     company_info_list = [dict(row) for row in company_info_rows]
     conn.close()
     return company_info_list
 
 
-def save_company_info_to_json(company_info, filename='company_info.json'):
-    with open(filename, 'w', encoding='utf-8') as file:
+def save_company_info_to_json(company_info, filename='all_info.json'):
+    with open(filename, 'a', encoding='utf-8') as file:
         json.dump(company_info, file, ensure_ascii=False, indent=4)
 
