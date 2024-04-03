@@ -89,7 +89,7 @@ def create_company_info():
     def async_process():
         # ljl:将企业信息转换为json文件
         data = request.get_json()
-        user_id = data['userID']
+        user_id = data['userId']
         company_info = fetch_company_info(user_id)
         save_company_info_to_json(company_info)
         # ljl:加入为学生匹配职位的知识图谱中(职位id+职位要求)
