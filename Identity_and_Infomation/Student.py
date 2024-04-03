@@ -225,20 +225,28 @@ def update_student_info():
         cursor.execute('''
         CREATE TABLE IF NOT EXISTS recommended_jobs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            job_id INTEGER NOT NULL,
             match REAL NOT NULL,
             educationMatch REAL NOT NULL,
             addressMatch REAL NOT NULL,
             salaryMatch REAL NOT NULL,
             abilityMatch REAL NOT NULL,
+            FOREIGN KEY(user_id) REFERENCES users(id)
+            FOREIGN KEY(job_id) REFERENCES company_info(id)
         );
         ''')
         # 创建推荐候选人表
         cursor.execute('''
         CREATE TABLE IF NOT EXISTS recommended_candidates (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            candidate_id INTEGER NOT NULL,
             match REAL NOT NULL,
             educationMatch REAL NOT NULL,
-            abilityMatch REAL NOT NULL
+            abilityMatch REAL NOT NULL,
+            FOREIGN KEY(user_id) REFERENCES users(id),
+            FOREIGN KEY(candidate_id) REFERENCES student_info(id)
         );
         ''')
         conn.commit()
