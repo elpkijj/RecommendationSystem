@@ -120,7 +120,68 @@ def create_company_info():
         # 假设的特定工作ID
         all_info_path = 'all_info.json'
         city_location_path= 'city_coordinates_cache.json'
-        xxxx= recommend_resumes(resumes_data_path, work_id, all_info_path,city_location_path)
+        all_scores = recommend_resumes(resumes_data_path, work_id, all_info_path,city_location_path)
+        #数据库操作
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        # 创建推荐候选人表
+        cursor.execute('''
+                CREATE TABLE IF NOT EXISTS recommended_candidates (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER NOT NULL,
+                    candidate_id INTEGER NOT NULL,
+                    match REAL NOT NULL,
+                    educationMatch REAL NOT NULL,
+                    addressMatch REAL NOT NULL,
+                    salaryMatch REAL NOT NULL,
+                    abilityMatch REAL NOT NULL,
+                    FOREIGN KEY(user_id) REFERENCES users(id),
+                    FOREIGN KEY(candidate_id) REFERENCES student_info(id)
+                );
+                ''')
+        #以下部分类似于职位推荐，变量修改后再调整
+        # 遍历返回的数据并插入数据库表中
+        for score_data in all_scores:
+            # 提取各项数据
+            work_id = score_data["work_id"]
+            weighted_score = score_data["weighted_score"]
+            skill_score = score_data["skill_score"]
+            education_score = score_data["education_score"]
+            salary_score = score_data["salary_score"]
+            city_score = score_data["city_score"]
+
+            # 执行插入操作
+            cursor.execute('''
+                        INSERT INTO recommended_candidates (job_id, weighted_score, skill_score, education_score, salary_score, city_score)
+                        VALUES (?, ?, ?, ?, ?, ?)
+                    ''', (work_id, weighted_score, skill_score, education_score, salary_score, city_score))
+
+        # 执行数据库查询
+        cursor.execute('SELECT * FROM recommended_ where id=?', (user_id,))
+
+        # 获取查询结果
+        rows = cursor.fetchone()
+
+        # 将查询结果转换为字典列表
+        results = []
+        for row in rows:
+            result = {
+                'work_id': row[0],
+                'weighted_score': row[1],
+                'skill_score': row[2],
+                'education_score': row[3],
+                'salary_score': row[4],
+                'city_score': row[5]
+            }
+            results.append(result)
+
+        # 将字典列表转换为JSON格式的字符串
+        json_data = json.dumps(results)
+
+        # 打印JSON数据（或者根据需要进行其他处理）
+        print(json_data)
+        conn.commit()
+        conn.close()
     # 在另一个线程中运行推荐算法和其他耗时操作
     threading.Thread(target=async_process).start()
 
