@@ -116,7 +116,7 @@ def create_company_info():
                 graph.merge(relationship)
         # grj:调用人才推荐函数(ljl:推荐函数中记得增加创建及存储推荐人才（学生）id+契合度的数据库)
         resumes_data_path = 'resumes.json'
-        work_id = 63  
+        work_id = 63
         # 假设的特定工作ID
         all_info_path = 'all_info.json'
         city_location_path= 'city_coordinates_cache.json'
@@ -139,11 +139,11 @@ def create_company_info():
                     FOREIGN KEY(candidate_id) REFERENCES student_info(id)
                 );
                 ''')
-        #以下部分类似于职位推荐，变量修改后再调整
+
         # 遍历返回的数据并插入数据库表中
         for score_data in all_scores:
             # 提取各项数据
-            work_id = score_data["work_id"]
+            resume_id = score_data["resume_id"]
             weighted_score = score_data["weighted_score"]
             skill_score = score_data["skill_score"]
             education_score = score_data["education_score"]
@@ -152,12 +152,12 @@ def create_company_info():
 
             # 执行插入操作
             cursor.execute('''
-                        INSERT INTO recommended_candidates (job_id, weighted_score, skill_score, education_score, salary_score, city_score)
+                        INSERT INTO recommended_candidates (resume_id, weighted_score, skill_score, education_score, salary_score, city_score)
                         VALUES (?, ?, ?, ?, ?, ?)
-                    ''', (work_id, weighted_score, skill_score, education_score, salary_score, city_score))
+                    ''', (resume_id, weighted_score, skill_score, education_score, salary_score, city_score))
 
         # 执行数据库查询
-        cursor.execute('SELECT * FROM recommended_ where id=?', (user_id,))
+        cursor.execute('SELECT * FROM recommended_candidates where id=?', (user_id,))
 
         # 获取查询结果
         rows = cursor.fetchone()
@@ -166,7 +166,7 @@ def create_company_info():
         results = []
         for row in rows:
             result = {
-                'work_id': row[0],
+                'resume_id': row[0],
                 'weighted_score': row[1],
                 'skill_score': row[2],
                 'education_score': row[3],
