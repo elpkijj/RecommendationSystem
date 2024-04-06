@@ -3,7 +3,7 @@ import sqlite3
 import threading
 from py2neo import Graph, Node, Relationship
 import json
-from loginRec import recommend_resumes
+from Identity_and_Infomation.loginRec import recommend_resumes
 
 companies = Blueprint('companies', __name__)
 DATABASE = 'Information.db'
@@ -32,10 +32,10 @@ def get_company_info(user_id):
     # 获取列名
     columns = [column[0] for column in cursor.description]
     # 将每个查询结果转换为字典
-    info_list = [dict(zip(columns, i)) for i in info]
+    info_dict = dict(zip(columns, info)) if info else {}
 
     conn.close()
-    return jsonify(info_list), 200
+    return jsonify(info_dict), 200
 
 
 @companies.route('/companies/create-info', methods=['POST'])
@@ -50,20 +50,29 @@ def create_company_info():
     conn = get_db_connection()
     cursor = conn.cursor()
 
+    cursor.execute('SELECT * FROM user WHERE id = ?', (data['userId'],))
+    user = cursor.fetchone()
+    if not user:
+        return jsonify({'message': '用户不存在'}), 404
+
+    cursor.execute('UPDATE user SET identity = ? WHERE id = ?', (data['identity'], data['userId']))
+
     # ljl:创建数据表
     cursor.execute('''CREATE TABLE IF NOT EXISTS company_info (
-                                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                                user_id INTEGER NOT NULL,
-                                name nchar(5),
-                                job nchar(30),
-                                description nvarchar(255),
-                                education nchar(4),
-                                manager nchar(10),
-                                salary char(20),
-                                address nvarchar(30),
-                                link varchar(150)
-                                FOREIGN KEY(user_id) REFERENCES users(id)
-                            )''')
+                                                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                                    user_id INTEGER NOT NULL,
+                                                    name nchar(5),
+                                                    job nchar(30),
+                                                    description nvarchar(255),
+                                                    education nchar(4),
+                                                    manager nchar(10),
+                                                    salary char(20),
+                                                    address nvarchar(30),
+                                                    link varchar(150),
+                                                    skills varchar(255),
+                                                    city nchar(30),
+                                                    FOREIGN KEY(user_id) REFERENCES user(id)
+                                                )''')
 
     # 检查是否已有企业信息
     cursor.execute('SELECT * FROM company_info WHERE user_id = ?', (data['userId'],))
@@ -85,38 +94,40 @@ def create_company_info():
         ''', (data['userId'], data['name'], data['job'], data['description'], data['education'], data['manager'],
               data['salary'], data['address'], data['link']))
 
+
+
     conn.commit()
 
-    def async_process():
+    def async_process(data):
         # ljl:将企业信息转换为json文件
-        data = request.get_json()
         user_id = data['userId']
         company_info = fetch_company_info(user_id)
         save_company_info_to_json(company_info)
         # ljl:加入为学生匹配职位的知识图谱中(职位id+职位要求)
-        graph = Graph("http://localhost:7474", auth=("neo4j", "XzJEunfiT2G.t2Y"), name="neo4j")
-        data = request.get_json()
-        identity = data['user_id']
-        # 添加关键词列表
-        with open('keywords.txt', 'r', encoding='utf-8') as file:
-            keywords = file.read().split('、')
+        # graph = Graph("http://localhost:7474", auth=("neo4j", "XzJEunfiT2G.t2Y"), name="neo4j")
+        # data = request.get_json()
+        # identity = data['user_id']
+        # # 添加关键词列表
+        # with open('keywords.txt', 'r', encoding='utf-8') as file:
+        #     keywords = file.read().split('、')
+        #
+        # # 创建identity节点
+        # identity_node = Node("Identity", name=identity, responsibility=data['description'])
+        # graph.merge(identity_node, "Identity", "name")
+        #
+        # # 为行中的每个关键词创建keyword节点并建立关系
+        # for keyword in keywords:
+        #     if keyword in data['description']:
+        #         keyword_node = graph.nodes.match("Keyword", name=keyword).first()
+        #         if not keyword_node:
+        #             keyword_node = Node("Keyword", name=keyword)
+        #             graph.merge(keyword_node, "Keyword", "name")
+        #         relationship = Relationship(identity_node, "CONTAINS", keyword_node)
+        #         graph.merge(relationship)
 
-        # 创建identity节点
-        identity_node = Node("Identity", name=identity, responsibility=data['description'])
-        graph.merge(identity_node, "Identity", "name")
-
-        # 为行中的每个关键词创建keyword节点并建立关系
-        for keyword in keywords:
-            if keyword in data['description']:
-                keyword_node = graph.nodes.match("Keyword", name=keyword).first()
-                if not keyword_node:
-                    keyword_node = Node("Keyword", name=keyword)
-                    graph.merge(keyword_node, "Keyword", "name")
-                relationship = Relationship(identity_node, "CONTAINS", keyword_node)
-                graph.merge(relationship)
         # grj:调用人才推荐函数(ljl:推荐函数中记得增加创建及存储推荐人才（学生）id+契合度的数据库)
         resumes_data_path = 'resumes.json'
-        work_id = 63
+        work_id = user_id
         # 假设的特定工作ID
         all_info_path = 'all_info.json'
         city_location_path= 'city_coordinates_cache.json'
@@ -135,7 +146,7 @@ def create_company_info():
                     addressMatch REAL NOT NULL,
                     salaryMatch REAL NOT NULL,
                     abilityMatch REAL NOT NULL,
-                    FOREIGN KEY(user_id) REFERENCES users(id),
+                    FOREIGN KEY(user_id) REFERENCES user(id),
                     FOREIGN KEY(candidate_id) REFERENCES student_info(id)
                 );
                 ''')
@@ -143,7 +154,7 @@ def create_company_info():
         # 遍历返回的数据并插入数据库表中
         for score_data in all_scores:
             # 提取各项数据
-            resume_id = score_data["resume_id"]
+            resume_id = score_data["resume_id"][0]
             weighted_score = score_data["weighted_score"]
             skill_score = score_data["skill_score"]
             education_score = score_data["education_score"]
@@ -152,39 +163,44 @@ def create_company_info():
 
             # 执行插入操作
             cursor.execute('''
-                        INSERT INTO recommended_candidates (user_id,resume_id, weighted_score, skill_score, education_score, salary_score, city_score)
-                        VALUES (?,?, ?, ?, ?, ?, ?)
-                    ''', (user_id,resume_id, weighted_score, skill_score, education_score, salary_score, city_score))
+                        INSERT INTO recommended_candidates (user_id, candidate_id, match, abilityMatch, educationMatch, salaryMatch, addressMatch)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                    ''', (user_id, resume_id, weighted_score, skill_score, education_score, salary_score, city_score))
 
-        # 执行数据库查询
-        cursor.execute('SELECT * FROM recommended_candidates where id=?', (user_id,))
+        # # 执行数据库查询
+        # cursor.execute('SELECT * FROM recommended_candidates where id=?', (user_id,))
 
-        # 获取查询结果
-        rows = cursor.fetchone()
-
-        # 将查询结果转换为字典列表
-        results = []
-        for row in rows:
-            result = {
-                'resume_id': row[0],
-                'weighted_score': row[1],
-                'skill_score': row[2],
-                'education_score': row[3],
-                'salary_score': row[4],
-                'city_score': row[5]
-            }
-            results.append(result)
-
-        # 将字典列表转换为JSON格式的字符串
-        json_data = json.dumps(results)
-
-        # 打印JSON数据（或者根据需要进行其他处理）
-        print(json_data)
+        # # 获取查询结果
+        # rows = cursor.fetchone()
+        #
+        # # 将查询结果转换为字典列表
+        # results = []
+        # for row in rows:
+        #     result = {
+        #         'resume_id': row[0],
+        #         'weighted_score': row[1],
+        #         'skill_score': row[2],
+        #         'education_score': row[3],
+        #         'salary_score': row[4],
+        #         'city_score': row[5]
+        #     }
+        #     results.append(result)
+        #
+        # # 将字典列表转换为JSON格式的字符串
+        # json_data = json.dumps(results)
+        #
+        # # 打印JSON数据（或者根据需要进行其他处理）
+        # print(json_data)
         conn.commit()
         conn.close()
     # 在另一个线程中运行推荐算法和其他耗时操作
-    threading.Thread(target=async_process).start()
+    threading.Thread(target=async_process, args=(data,)).start()
 
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('UPDATE user SET first_login = 0 WHERE id = ?', data['userId'])
+    conn.commit()
+    conn.close()
     return jsonify({'message': '企业信息提交成功'}), 200
 
 
@@ -193,13 +209,13 @@ def fetch_company_info(user_id):
     conn = sqlite3.connect('Information.db')
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
-    cursor.execute('SELECT * FROM company_info where user_id=?', (user_id,))
-    company_info_rows = cursor.fetchone()
-    company_info_list = [dict(row) for row in company_info_rows]
+    cursor.execute('SELECT id, user_id, education,salary,address,skills FROM company_info where user_id=?', (user_id,))
+    company_info_row = cursor.fetchone()
+    company_info_dist = dict(company_info_row)
     conn.close()
-    return company_info_list
+    return company_info_dist
 
-# 修改了一下函数
+
 def save_company_info_to_json(company_info, filename='all_info.json'):
     try:
         # 尝试以读模式打开文件并加载现有数据
@@ -215,3 +231,4 @@ def save_company_info_to_json(company_info, filename='all_info.json'):
     # 以写模式打开文件并更新数据
     with open(filename, 'w', encoding='utf-8') as file:
         json.dump(existing_data, file, ensure_ascii=False, indent=4)
+

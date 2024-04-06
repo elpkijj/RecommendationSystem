@@ -20,7 +20,7 @@ def get_recommended_talents(user_id):
     cursor.execute('''
                SELECT si.id, si.name, si.sex, si.lowestSalary, si.highestSalary, si.phone, si.education, si.year, si.intention, si.intentionCity, si.email, si.profession, si.educationExperience, si.internship, si.project, si.advantage, si.skills,
                       rc.match, rc.educationMatch, rc.abilityMatch
-               FROM recommended_candidate rc
+               FROM recommended_candidates rc
                JOIN student_info si ON rc.candidate_id = si.id
                WHERE rc.user_id = ?
                ORDER BY rc.match DESC
@@ -61,7 +61,7 @@ def sort_candidates(user_id, criteria):
     sql_query = '''
                    SELECT si.id, si.name, si.sex, si.lowestSalary, si.highestSalary, si.phone, si.education, si.year, si.intention, si.intentionCity, si.email, si.profession, si.educationExperience, si.internship, si.project, si.advantage, si.skills,
                           rc.match, rc.educationMatch, rc.abilityMatch
-                   FROM recommended_candidate rc
+                   FROM recommended_candidates rc
                    JOIN student_info si ON rc.candidate_id = si.id
                    WHERE rc.user_id = ?
                    ORDER BY {} DESC
@@ -72,7 +72,7 @@ def sort_candidates(user_id, criteria):
     candidates = cursor.fetchall()
 
     if not candidates:
-        return jsonify({'message': '未找到推荐职位'}), 404
+        return jsonify({'message': '未找到推荐人才'}), 404
 
     # 获取列名
     columns = [column[0] for column in cursor.description]

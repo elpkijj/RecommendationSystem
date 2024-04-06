@@ -1,13 +1,17 @@
 import pandas as pd
 import numpy as np
 import json
+import re
 from geopy.geocoders import Nominatim
 from geopy.distance import geodesic
+
 geolocator = Nominatim(user_agent="city_distance_calculator")
 preferred_cities = ["杭州", "厦门", "北京", "上海", "天津", "西安", "长沙",
                     "成都", "广州", "苏州", "郑州", "深圳", "武汉", "重庆"]
+
+
 # 得到城市的经纬度
-def get_coordinates_cached(city,city_coordinates_cache):
+def get_coordinates_cached(city, city_coordinates_cache):
     if city not in city_coordinates_cache:
         location = geolocator.geocode(city, language="zh", timeout=7)
         if location:
@@ -16,22 +20,45 @@ def get_coordinates_cached(city,city_coordinates_cache):
             print(f"找不到城市 '{city}' 的经纬度信息")
             city_coordinates_cache[city] = None
     return city_coordinates_cache[city]
+
+
 def parse_salary(salary_str):
     """解析薪资字符串，返回薪资范围的最小值和最大值"""
     # 将字符串转换为小写以统一处理大写和小写的'K'
     parts = salary_str.lower().replace('k', '000').split('-')
     if len(parts) == 2:
-        min_salary, max_salary = int(parts[0].strip()), int(parts[1].strip())
+        # 使用正则表达式提取字符串中的数字部分
+        min_salary_numbers = re.findall(r'\d+', parts[0].strip())
+        max_salary_numbers = re.findall(r'\d+', parts[1].strip())
+        # 确保提取到的是数字并进行转换
+        if min_salary_numbers:
+            min_salary = int(''.join(min_salary_numbers))
+        else:
+            min_salary = 0  # 如果没有找到数字，默认为0
+        if max_salary_numbers:
+            max_salary = int(''.join(max_salary_numbers))
+        else:
+            max_salary = 10000  # 如果没有找到数字，默认为0
     else:
-        min_salary = max_salary = int(parts[0].strip())
+        # 对于单一值的情况，只需提取一次数字
+        salary_numbers = re.findall(r'\d+', parts[0].strip())
+        if salary_numbers:
+            min_salary = max_salary = int(''.join(salary_numbers))
+        else:
+            min_salary = max_salary = 10000  # 如果没有找到数字，默认为0
     return min_salary, max_salary
-#归一化总得分
+
+
+# 归一化总得分
 def normalize_scores(scores):
     scores_array = np.array(list(scores.values()))
     mean_score = np.mean(scores_array)
     std_score = np.std(scores_array)
-    normalized_scores = {work_id: 1 / (1 + np.exp(-(score - mean_score) / std_score)) for work_id, score in scores.items()}
+    normalized_scores = {work_id: 1 / (1 + np.exp(-(score - mean_score) / std_score)) for work_id, score in
+                         scores.items()}
     return normalized_scores
+
+
 def calculate_skills_match_percentage(resume_skills, work_keywords):
     # 将简历技能字符串分割为列表，并去除空格
     resume_skills_list = [skill.strip() for skill in resume_skills.split(',')]
@@ -44,11 +71,12 @@ def calculate_skills_match_percentage(resume_skills, work_keywords):
     match_percentage = len(skills_intersection) / len(skills_union)
 
     return match_percentage
-def calculate_salary_match_percentage(dream_salary_str, work_salary_str):
+
+
+def calculate_salary_match_percentage(min_dream_salary, max_dream_salary, work_salary_str):
     if work_salary_str == "Unknown":
         return 0.02  # 将2%表示为0.02，以保持返回值的一致性
 
-    min_dream_salary, max_dream_salary = parse_salary(dream_salary_str)
     min_work_salary, max_work_salary = parse_salary(work_salary_str)
 
     # 完全匹配的情况
@@ -73,8 +101,10 @@ def calculate_salary_match_percentage(dream_salary_str, work_salary_str):
     match_percentage = max(0.01, match_percentage)  # 使用0.01作为最低匹配度
 
     return match_percentage
-def location_match_percentage(resume_city, work_city,city_coordinates_cache):
-    if work_city== "Unknown":
+
+
+def location_match_percentage(resume_city, work_city, city_coordinates_cache):
+    if work_city == "Unknown":
         return 2
     """计算地点的偏好匹配度"""
     # 基于城市偏好名单计算匹配度
@@ -83,8 +113,8 @@ def location_match_percentage(resume_city, work_city,city_coordinates_cache):
     else:
         preference_1 = 0
     # 获取工作城市和居住城市的经纬度
-    work_coordinates =get_coordinates_cached(work_city,city_coordinates_cache)
-    resume_coordinates = get_coordinates_cached(resume_city,city_coordinates_cache)
+    work_coordinates = get_coordinates_cached(work_city, city_coordinates_cache)
+    resume_coordinates = get_coordinates_cached(resume_city, city_coordinates_cache)
     if work_coordinates and resume_coordinates:
         # 计算城市之间的地理距离
         distance_km = geodesic(work_coordinates, resume_coordinates).kilometers
@@ -98,10 +128,12 @@ def location_match_percentage(resume_city, work_city,city_coordinates_cache):
         # 线性转换
         score2 = max_score - (distance_km / max_distance_km) * (max_score - min_score)
         score2 = max(min_score, min(score2, max_score))  # 确保评分在合理范围内
-    score=0.5*preference_1+0.5*score2
+    score = 0.5 * preference_1 + 0.5 * score2
     return score
+
+
 def calculate_location_match_percentage(resume_city, work_city):
-    if work_city== "Unknown":
+    if work_city == "Unknown":
         return 2
     """计算地点的偏好匹配度"""
     # 基于城市偏好名单计算匹配度
@@ -111,6 +143,8 @@ def calculate_location_match_percentage(resume_city, work_city):
         preference_1 = 0
 
     return preference_1
+
+
 def calculate_education_match_percentage(resume_education, work_education):
     # 定义学历与数值权重的映射
     education_levels = {
@@ -141,20 +175,24 @@ def calculate_education_match_percentage(resume_education, work_education):
 
     return match_percentage
 
-def recommend_jobs(resume_data_path, all_info_path, city_location_path,top_n=30):
 
+def recommend_jobs(resumes_data_path, resume_id, all_info_path, city_location_path):
     # 加载简历数据
-    with open(resume_data_path, 'r', encoding='utf-8') as file:
-        data = json.load(file)
-    resume_city = data['city']
+    with open(resumes_data_path, 'r', encoding='utf-8') as file:
+        datas = json.load(file)
+    # print(datas)
+    student_info = {student['user_id']: student for student in datas}
+    data = student_info.get(resume_id, {})
+    resume_city = data['intentionCity']
     resume_skills = data['skills']
-    dream_salary = data['salary']
+    dream_salary_low = int(data['lowestSalary'])
+    dream_salary_high = int(data['highestSalary'])
     resume_education = data['education']
 
     # 加载所有工作信息
     with open(all_info_path, 'r', encoding='utf-8') as f:
         work_data = json.load(f)
-    work_info = {work['Identity']: work for work in work_data}
+    work_info = {work['id']: work for work in work_data}
 
     # 从JSON文件中读取城市与坐标的映射信息
     with open(city_location_path, 'r') as f:
@@ -165,34 +203,37 @@ def recommend_jobs(resume_data_path, all_info_path, city_location_path,top_n=30)
     skill_scores = {}
     edu_scores = {}
     salary_scores = {}
-    city_scores={}
-    for identity, work in work_info.items():
-        work_id=int(work['Identity'])
-        work_education = work_info[str(work_id)]['Education_Requirement']
-        work_skill = work_info[str(work_id)]['Keywords']
-        work_salary = work_info[str(work_id)]['Salary_Range']
-        work_address = work_info[str(work_id)]['City']
+    city_scores = {}
+    for id, work in work_info.items():
+        work_id = int(work['id'])
+        work_education = work_info[work_id]['education']
+        work_skill = work_info[work_id]['skills']
+        work_salary = work_info[work_id]['salary']
+        work_address = work_info[work_id]['city']
 
-        edu_scores[work_id]=calculate_education_match_percentage(resume_education,work_education)
+        edu_scores[work_id] = calculate_education_match_percentage(resume_education, work_education)
         skill_scores[work_id] = calculate_skills_match_percentage(resume_skills, work_skill)
-        salary_scores[work_id] = calculate_salary_match_percentage(dream_salary, work_salary)
-        city_scores [work_id]= location_match_percentage(resume_city, work_address,city_coordinates_cache)
-        scores[work_id]=0.4*skill_scores[work_id]+0.2*edu_scores[work_id]+0.2*salary_scores[work_id]+0.2*city_scores[work_id]
+        salary_scores[work_id] = calculate_salary_match_percentage(dream_salary_low, dream_salary_high, work_salary)
+        city_scores[work_id] = location_match_percentage(resume_city, work_address, city_coordinates_cache)
+        scores[work_id] = 0.4 * skill_scores[work_id] + 0.2 * edu_scores[work_id] + 0.2 * salary_scores[work_id] + 0.2 * \
+                          city_scores[work_id]
 
     sorted_scores = sorted(scores.items(), key=lambda x: x[1], reverse=True)
     all_scores = []
     for work_id in sorted_scores:
         all_scores.append({
             "work_id": work_id,
-            "weighted_score": scores.get(work_id, 0),
-            "skill_score": skill_scores.get(work_id, 0),
-            "education_score": edu_scores.get(work_id, 0),
-            "salary_score": salary_scores.get(work_id, 0),
-            "city_score": city_scores.get(work_id, 0)
+            "weighted_score": scores[work_id[0]],
+            "skill_score": skill_scores[work_id[0]],
+            "education_score": edu_scores[work_id[0]],
+            "salary_score": salary_scores[work_id[0]],
+            "city_score": city_scores[work_id[0]]
         })
+    # print(all_scores[0])
     return all_scores
+
 # 调用推荐函数
-resume_data_path = '../job_Recommendation/resume.json'
-all_info_path = '../job_Recommendation/all_info.json'
-city_location_path= '../job_Recommendation/city_coordinates_cache.json'
-recommend_jobs(resume_data_path, all_info_path,city_location_path,30)
+# resume_data_path = './job_Recommendation/resume.json'
+# all_info_path = './job_Recommendation/all_info.json'
+# city_location_path = './job_Recommendation/city_coordinates_cache.json'
+# recommend_jobs(resume_data_path, all_info_path, city_location_path, 30)

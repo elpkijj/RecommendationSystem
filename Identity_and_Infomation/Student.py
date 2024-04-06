@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify, current_app
 from werkzeug.utils import secure_filename
-from newRec import recommend_jobs
+from Identity_and_Infomation.newRec import recommend_jobs
 import os
 import sqlite3
 import threading
@@ -8,6 +8,7 @@ import pdfplumber
 import re
 import json
 from py2neo import Graph, Node, Relationship
+
 
 students = Blueprint('students', __name__)
 
@@ -30,7 +31,7 @@ def upload_resume():
     if file:
         filename = secure_filename(file.filename)
         # 检查文件是否为PDF格式
-        if not filename.lower().endswith('.pdf'):
+        if not filename.lower().endswith('pdf'):
             return jsonify({'message': '文件格式不正确，请上传PDF文件'}), 422
 
         file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
@@ -39,17 +40,18 @@ def upload_resume():
         # 实体提取逻辑
         text = read_pdf_file(file_path)
         resume_info = extract_info_from_pdf_resume(text)
+        skills_str = ', '.join(resume_info.get('专业技能')) if resume_info.get('专业技能') else ''
 
         # 将提取的信息和隐私设置存储到学生信息表中
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        cursor.execute('SELECT * FROM users WHERE id = ?', (user_id,))
+        cursor.execute('SELECT * FROM user WHERE id = ?', (user_id,))
         user = cursor.fetchone()
         if not user:
             return jsonify({'message': '用户不存在'}), 404
 
-        cursor.execute('UPDATE users SET identity = ? WHERE id = ?', (identity, user_id))
+        cursor.execute('UPDATE user SET identity = ? WHERE id = ?', (identity, user_id))
 
         # ljl:创建数据表
         cursor.execute('''CREATE TABLE IF NOT EXISTS student_info (
@@ -73,7 +75,7 @@ def upload_resume():
                             privacy_setting int check(privacy_setting in(0,1,2)),
                             skills varchar(255),
                             resume_path TEXT,
-                            FOREIGN KEY(user_id) REFERENCES users(id)
+                            FOREIGN KEY(user_id) REFERENCES user(id)
                         )''')
 
         cursor.execute('''
@@ -95,7 +97,7 @@ def upload_resume():
                       resume_info.get('意向城市'), resume_info.get('电子邮箱'),
                       resume_info.get('专业'), resume_info.get('教育经历'), resume_info.get('工作经历'),
                       resume_info.get('项目经历'), resume_info.get('个人优势'), file_path, privacy_setting,
-                      resume_info.get('专业技能'), user_id))
+                      skills_str, user_id))
         else:
             # ljl:插入数据
             cursor.execute('''
@@ -109,11 +111,11 @@ def upload_resume():
                             resume_info.get('意向城市'), resume_info.get('电子邮箱'),
                             resume_info.get('专业'), resume_info.get('教育经历'), resume_info.get('工作经历'),
                             resume_info.get('项目经历'), resume_info.get('个人优势'), file_path, privacy_setting,
-                            resume_info.get('专业技能')))
+                            skills_str))
         conn.commit()
         conn.close()
 
-        return jsonify({'message': '简历上传成功', 'resume_info': resume_info}), 200
+        return jsonify({'message': '简历上传成功'}), 200
     else:
         return jsonify({'message': '文件上传失败'}), 400
 
@@ -136,10 +138,10 @@ def get_student_info(user_id):
     # 获取列名
     columns = [column[0] for column in cursor.description]
     # 将每个查询结果转换为字典
-    info_list = [dict(zip(columns, i)) for i in info]
+    info_dict = dict(zip(columns, info)) if info else {}
 
     conn.close()
-    return jsonify(info_list), 200
+    return jsonify(info_dict), 200
 
 
 @students.route('/students/update-info', methods=['PUT'])
@@ -189,10 +191,10 @@ def update_student_info():
                     skills = section[start_index:end_index].strip()
                     break
             if skills:
-                matched_skills = match_keywords(skills, 'description.txt')
+                matched_skills = match_keywords(skills, './Identity_and_Infomation/description.txt')
                 skills = matched_skills
                 break
-    data['skills'] = skills
+    data['skills'] = ', '.join(skills) if skills else ''
     cursor.execute('''
                 UPDATE student_info SET skills = ?
                 WHERE user_id = ?
@@ -200,29 +202,27 @@ def update_student_info():
     conn.commit()
     conn.close()
 
-    def async_process():
+    def async_process(data, user_id, privacySetting):
         # ljl:将学生信息转换为json文件
         # （在上面加了fetch_student_info和save_student_info_to_json函数）
-        data = request.get_json()
-        user_id = data['userId']
         student_info = fetch_student_info(user_id)
         save_student_info_to_json(student_info)
         # ljl:如果隐私设置为公开，则加入为企业匹配求职者的知识图谱中(学生id+专业技能)
-        if request.form['privacySetting'] == 0:
-            graph = Graph("http://localhost:7474", auth=("neo4j", "XzJEunfiT2G.t2Y"), name="neo4j")
-            user_node = Node("UserID", id=user_id)
-            graph.merge(user_node, "UserID", "id")
-            for skill in data['skills']:  # 直接遍历skills列表
-                # 检查keyword节点是否已存在
-                existing_keyword = graph.nodes.match("Keyword", name=skill).first()
-                if not existing_keyword:
-                    keyword_node = Node("Keyword", name=skill)
-                    graph.merge(keyword_node, "Keyword", "name")
-                else:
-                    keyword_node = existing_keyword
-                # 建立UserID与Keyword之间的HASSKILL关系
-                relationship = Relationship(user_node, "HASSKILL", keyword_node)
-                graph.merge(relationship)
+        # if privacySetting == 0:
+        #     graph = Graph("http://localhost:7474", auth=("neo4j", "XzJEunfiT2G.t2Y"), name="neo4j")
+        #     user_node = Node("UserID", id=user_id)
+        #     graph.merge(user_node, "UserID", "id")
+        #     for skill in data['skills']:  # 直接遍历skills列表
+        #         # 检查keyword节点是否已存在
+        #         existing_keyword = graph.nodes.match("Keyword", name=skill).first()
+        #         if not existing_keyword:
+        #             keyword_node = Node("Keyword", name=skill)
+        #             graph.merge(keyword_node, "Keyword", "name")
+        #         else:
+        #             keyword_node = existing_keyword
+        #         # 建立UserID与Keyword之间的HASSKILL关系
+        #         relationship = Relationship(user_node, "HASSKILL", keyword_node)
+        #         graph.merge(relationship)
 
         # grj:调用职位推荐函数(ljl:推荐函数中记得增加创建及存储推荐职位id+契合度的数据库)
         conn = get_db_connection()
@@ -237,7 +237,7 @@ def update_student_info():
             addressMatch REAL NOT NULL,
             salaryMatch REAL NOT NULL,
             abilityMatch REAL NOT NULL,
-            FOREIGN KEY(user_id) REFERENCES users(id)
+            FOREIGN KEY(user_id) REFERENCES user(id)
             FOREIGN KEY(job_id) REFERENCES company_info(id)
         );
         ''')
@@ -246,12 +246,12 @@ def update_student_info():
         resume_data_path='resumes.json'
         all_info_path='all_info.json'
         city_location_path='city_coordinates_cache.json'
-        all_scores = recommend_jobs(resume_data_path, all_info_path, city_location_path, top_n=30)
+        all_scores = recommend_jobs(resume_data_path, user_id, all_info_path, city_location_path)
 
         # 遍历返回的数据并插入数据库表中（这里有一点不确定，架设了all_score有多项数据）
         for score_data in all_scores:
             # 提取各项数据
-            work_id = score_data["work_id"]
+            work_id = score_data["work_id"][0]
             weighted_score = score_data["weighted_score"]
             skill_score = score_data["skill_score"]
             education_score = score_data["education_score"]
@@ -260,40 +260,45 @@ def update_student_info():
 
             # 执行插入操作
             cursor.execute('''
-                INSERT INTO recommended_jobs (user_id,job_id, weighted_score, skill_score, education_score, salary_score, city_score)
-                VALUES (?,?, ?, ?, ?, ?, ?)
-            ''', (user_id,work_id, weighted_score, skill_score, education_score, salary_score, city_score))
+                INSERT INTO recommended_jobs (user_id, job_id, match, abilityMatch, educationMatch, salaryMatch, addressMatch)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            ''', (user_id, work_id, weighted_score, skill_score, education_score, salary_score, city_score))
 
-        # 执行数据库查询
-        cursor.execute('SELECT * FROM recommended_jobs where id=?',(user_id,))
-
-        # 获取查询结果
-        rows = cursor.fetchone()
-
-        # 将查询结果转换为字典列表
-        results = []
-        for row in rows:
-            result = {
-                'work_id': row[0],
-                'weighted_score': row[1],
-                'skill_score': row[2],
-                'education_score': row[3],
-                'salary_score': row[4],
-                'city_score': row[5]
-            }
-            results.append(result)
-
-        # 将字典列表转换为JSON格式的字符串
-        json_data = json.dumps(results)
-
-        # 打印JSON数据（或者根据需要进行其他处理）
-        print(json_data)
+        # # 执行数据库查询
+        # cursor.execute('SELECT * FROM recommended_jobs where id=?',(user_id,))
+        #
+        # # 获取查询结果
+        # rows = cursor.fetchone()
+        #
+        # # 将查询结果转换为字典列表
+        # results = []
+        # for row in rows:
+        #     result = {
+        #         'work_id': row[0],
+        #         'weighted_score': row[1],
+        #         'skill_score': row[2],
+        #         'education_score': row[3],
+        #         'salary_score': row[4],
+        #         'city_score': row[5]
+        #     }
+        #     results.append(result)
+        #
+        # # 将字典列表转换为JSON格式的字符串
+        # json_data = json.dumps(results)
+        #
+        # # 打印JSON数据（或者根据需要进行其他处理）
+        # # print(json_data)
         conn.commit()
         conn.close()
 
     # 在另一个线程中运行推荐算法和其他耗时操作
-    threading.Thread(target=async_process).start()
+    threading.Thread(target=async_process, args=(data, user_id, data.get('privacySetting'))).start()
 
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('UPDATE user SET first_login = 0 WHERE id = ?', (user_id,))
+    conn.commit()
+    conn.close()
     return jsonify({'message': '信息更新成功'}), 200
 
 
@@ -303,15 +308,15 @@ def fetch_student_info(user_id):
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
     cursor.execute(
-        'SELECT user_id,intentionCity,lowestSalary,highestSalary,skills,education FROM student_info where user_id=?',
+        'SELECT id, user_id,intentionCity,lowestSalary,highestSalary,skills,education FROM student_info where user_id=?',
         (user_id,))
-    student_info_rows = cursor.fetchone()
-    student_info_list = [dict(row) for row in student_info_rows]
+    student_info_row = cursor.fetchone()
+    student_info_dict = dict(student_info_row)
     conn.close()
-    return student_info_list
+    return student_info_dict
 
 
-def save_student_info_to_json(student_info, filename='resume.json'):
+def save_student_info_to_json(student_info, filename='resumes.json'):
     try:
         # 尝试以读模式打开文件并加载现有数据
         with open(filename, 'r', encoding='utf-8') as file:
@@ -326,6 +331,7 @@ def save_student_info_to_json(student_info, filename='resume.json'):
     # 以写模式打开文件并更新数据
     with open(filename, 'w', encoding='utf-8') as file:
         json.dump(existing_data, file, ensure_ascii=False, indent=4)
+
 
 def read_pdf_file(filename):
     with pdfplumber.open(filename) as pdf:
@@ -343,9 +349,9 @@ def load_keywords_from_file(file_path):
 
 
 # 加载专业、城市、学历关键词
-major_keywords = load_keywords_from_file('Identity_and_Infomation/major.txt')
-city_keywords = load_keywords_from_file('Identity_and_Infomation/city.txt')
-education_keywords = load_keywords_from_file('Identity_and_Infomation/education.txt')
+major_keywords = load_keywords_from_file('./Identity_and_Infomation/major.txt')
+city_keywords = load_keywords_from_file('./Identity_and_Infomation/city.txt')
+education_keywords = load_keywords_from_file('./Identity_and_Infomation/education.txt')
 
 
 def match_keywords(text, keyword_file):
@@ -400,7 +406,7 @@ def extract_info_from_pdf_resume(text):
             intention = text[start_index:end_index].strip()
             break
     if intention:
-        titles = load_titles_from_file('title.txt')
+        titles = load_titles_from_file('./Identity_and_Infomation/title.txt')
         for title in titles:
             if title in intention:
                 intention = title
@@ -417,7 +423,7 @@ def extract_info_from_pdf_resume(text):
             skills = text[start_index:end_index].strip()
             break
     if skills:
-        matched_skills = match_keywords(skills, 'description.txt')
+        matched_skills = match_keywords(skills, './Identity_and_Infomation/description.txt')
         skills = matched_skills
     info['专业技能'] = skills
 
