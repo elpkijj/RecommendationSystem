@@ -241,19 +241,6 @@ def update_student_info():
             FOREIGN KEY(job_id) REFERENCES company_info(id)
         );
         ''')
-        # 创建推荐候选人表
-        cursor.execute('''
-        CREATE TABLE IF NOT EXISTS recommended_candidates (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            candidate_id INTEGER NOT NULL,
-            match REAL NOT NULL,
-            educationMatch REAL NOT NULL,
-            abilityMatch REAL NOT NULL,
-            FOREIGN KEY(user_id) REFERENCES users(id),
-            FOREIGN KEY(candidate_id) REFERENCES student_info(id)
-        );
-        ''')
 
         # 调用函数并获取返回的数据
         resume_data_path='resumes.json'
@@ -273,9 +260,9 @@ def update_student_info():
 
             # 执行插入操作
             cursor.execute('''
-                INSERT INTO recommended_jobs (job_id, weighted_score, skill_score, education_score, salary_score, city_score)
-                VALUES (?, ?, ?, ?, ?, ?)
-            ''', (work_id, weighted_score, skill_score, education_score, salary_score, city_score))
+                INSERT INTO recommended_jobs (user_id,job_id, weighted_score, skill_score, education_score, salary_score, city_score)
+                VALUES (?,?, ?, ?, ?, ?, ?)
+            ''', (user_id,work_id, weighted_score, skill_score, education_score, salary_score, city_score))
 
         # 执行数据库查询
         cursor.execute('SELECT * FROM recommended_jobs where id=?',(user_id,))
@@ -325,9 +312,20 @@ def fetch_student_info(user_id):
 
 
 def save_student_info_to_json(student_info, filename='resume.json'):
-    with open(filename, 'a', encoding='utf-8') as file:
-        json.dump(student_info, file, ensure_ascii=False, indent=4)
+    try:
+        # 尝试以读模式打开文件并加载现有数据
+        with open(filename, 'r', encoding='utf-8') as file:
+            existing_data = json.load(file)
+    except (FileNotFoundError, json.JSONDecodeError):
+        # 如果文件不存在或文件为空，则创建一个新的列表
+        existing_data = []
 
+    # 将新的学生信息追加到现有数据中
+    existing_data.append(student_info)
+
+    # 以写模式打开文件并更新数据
+    with open(filename, 'w', encoding='utf-8') as file:
+        json.dump(existing_data, file, ensure_ascii=False, indent=4)
 
 def read_pdf_file(filename):
     with pdfplumber.open(filename) as pdf:
