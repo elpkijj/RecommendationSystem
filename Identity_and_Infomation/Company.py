@@ -152,9 +152,9 @@ def create_company_info():
 
             # 执行插入操作
             cursor.execute('''
-                        INSERT INTO recommended_candidates (resume_id, weighted_score, skill_score, education_score, salary_score, city_score)
-                        VALUES (?, ?, ?, ?, ?, ?)
-                    ''', (resume_id, weighted_score, skill_score, education_score, salary_score, city_score))
+                        INSERT INTO recommended_candidates (user_id,resume_id, weighted_score, skill_score, education_score, salary_score, city_score)
+                        VALUES (?,?, ?, ?, ?, ?, ?)
+                    ''', (user_id,resume_id, weighted_score, skill_score, education_score, salary_score, city_score))
 
         # 执行数据库查询
         cursor.execute('SELECT * FROM recommended_candidates where id=?', (user_id,))
@@ -199,7 +199,19 @@ def fetch_company_info(user_id):
     conn.close()
     return company_info_list
 
-
+# 修改了一下函数
 def save_company_info_to_json(company_info, filename='all_info.json'):
-    with open(filename, 'a', encoding='utf-8') as file:
-        json.dump(company_info, file, ensure_ascii=False, indent=4)
+    try:
+        # 尝试以读模式打开文件并加载现有数据
+        with open(filename, 'r', encoding='utf-8') as file:
+            existing_data = json.load(file)
+    except (FileNotFoundError, json.JSONDecodeError):
+        # 如果文件不存在或文件为空，则创建一个新的列表
+        existing_data = []
+
+    # 将新的学生信息追加到现有数据中
+    existing_data.append(company_info)
+
+    # 以写模式打开文件并更新数据
+    with open(filename, 'w', encoding='utf-8') as file:
+        json.dump(existing_data, file, ensure_ascii=False, indent=4)
