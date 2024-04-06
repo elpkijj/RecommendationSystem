@@ -68,23 +68,34 @@ def create_company_info():
     # 检查是否已有企业信息
     cursor.execute('SELECT * FROM company_info WHERE user_id = ?', (data['userId'],))
     existing_info = cursor.fetchone()
+    #实体抽取
+    skills=[]
+    city=None
 
+    # 创建关键词节点并建立关系
+    for keyword in keywords:
+        if keyword in data['description']:
+            skills.append(keyword)
+    for c in cities:
+        if c in data['address']:
+            city=c
+            break
+    # 插入新数据
+    skills_json = json.dumps(skills)
+    data_to_insert = [data['name'], data['job'], data['description'], data['education'], data['manager'],
+            data['salary'], data['address'], data['link'],skills_json,city]
     if existing_info:
         # 更新现有记录
         cursor.execute('''
-            UPDATE company_info
-            SET name = ?, job = ?, description = ?, education = ?, manager = ?, salary = ?, address = ?, link = ?
-            WHERE user_id = ?
-        ''', (data['name'], data['job'], data['description'], data['education'], data['manager'], data['salary'],
-              data['address'], data['link'], data['userId']))
+                        UPDATE company_info
+                        SET name = ?, job = ?, description = ?, education = ?, manager = ?, salary = ?, address = ?, link = ?, skills = ?, city = ?
+                        WHERE user_id = ?
+                        ''', data_to_insert + [user_id])
     else:
-        # 插入新数据
         cursor.execute('''
-            INSERT INTO company_info (user_id, name, job, description, education, manager, salary, address, link)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (data['userId'], data['name'], data['job'], data['description'], data['education'], data['manager'],
-              data['salary'], data['address'], data['link']))
-
+                        INSERT INTO company_info (user_id, name, job, salary, education, description, manager, address, link,skills,city) 
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?,?,?)
+                    ''', data_to_insert)     
     conn.commit()
 
     def async_process():
