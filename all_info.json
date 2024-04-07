@@ -50,11 +50,19 @@
     {
         "id": 3,
         "user_id": 2,
-        "education": "Bachelor's",
-        "salary": "5-7K",
-        "address": "上海",
-        "skills": "[\"HTML\"]",
-        "city": "上海"
+        "education": "大专",
+        "salary": "1-6K",
+        "address": "郑州二七区升龙世纪花园壹区1号楼",
+        "skills": [
+            "后端",
+            "实习",
+            "小程序",
+            "element",
+            "前后端分离",
+            "UI",
+            "JAVA"
+        ],
+        "city": "郑州"
     },
     {
         "id": 4,
