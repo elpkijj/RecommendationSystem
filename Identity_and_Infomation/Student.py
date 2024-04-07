@@ -20,11 +20,8 @@ def get_db_connection():
     return conn
 
 
-@students.route('/resume/upload', methods=['POST'])
-def upload_resume():
-    user_id = request.form['userId']
-    identity = request.form['identity']
-    privacy_setting = request.form['privacySetting']
+@students.route('/resume/upload/<int:user_id>', methods=['POST'])
+def upload_resume(user_id):
     file = request.files['file']
 
     if file:
@@ -44,13 +41,6 @@ def upload_resume():
         # 将提取的信息和隐私设置存储到学生信息表中
         conn = get_db_connection()
         cursor = conn.cursor()
-
-        cursor.execute('SELECT * FROM user WHERE id = ?', (user_id,))
-        user = cursor.fetchone()
-        if not user:
-            return jsonify({'message': '用户不存在'}), 404
-
-        cursor.execute('UPDATE user SET identity = ? WHERE id = ?', (identity, user_id))
 
         # ljl:创建数据表
         cursor.execute('''CREATE TABLE IF NOT EXISTS student_info (
@@ -88,28 +78,28 @@ def upload_resume():
                     UPDATE student_info SET name = ?, sex = ?, loweStsalary = ?, higheStsalary = ?,
                     phone = ?, education = ?, year = ?, intention = ?, intentionCity = ?, email = ?, 
                     profession = ?, educationExperience = ?, internship = ?, project = ?, advantage = ?,
-                    resume_path = ?, privacy_setting = ?, skills = ?
+                    resume_path = ?, skills = ?
                     WHERE user_id = ?
                 ''', (resume_info.get('姓名'), resume_info.get('性别'), resume_info.get('期望薪资下限'),
                       resume_info.get('期望薪资上限'), resume_info.get('联系电话'),
                       resume_info.get('学历'), resume_info.get('年龄'), resume_info.get('求职意向'),
                       resume_info.get('意向城市'), resume_info.get('电子邮箱'),
                       resume_info.get('专业'), resume_info.get('教育经历'), resume_info.get('工作经历'),
-                      resume_info.get('项目经历'), resume_info.get('个人优势'), file_path, privacy_setting,
+                      resume_info.get('项目经历'), resume_info.get('个人优势'), file_path,
                       skills_str, user_id))
         else:
             # ljl:插入数据
             cursor.execute('''
                         INSERT INTO student_info (user_id, name,sex,lowestSalary, highestSalary,phone,education,
                         year,intention,intentionCity,email,profession,educationExperience,internship,project,advantage,
-                        resume_path,privacy_setting,skills)
+                        resume_path,skills)
                         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)''',
                            (user_id, resume_info.get('姓名'), resume_info.get('性别'), resume_info.get('期望薪资下限'),
                             resume_info.get('期望薪资上限'), resume_info.get('联系电话'),
                             resume_info.get('学历'), resume_info.get('年龄'), resume_info.get('求职意向'),
                             resume_info.get('意向城市'), resume_info.get('电子邮箱'),
                             resume_info.get('专业'), resume_info.get('教育经历'), resume_info.get('工作经历'),
-                            resume_info.get('项目经历'), resume_info.get('个人优势'), file_path, privacy_setting,
+                            resume_info.get('项目经历'), resume_info.get('个人优势'), file_path,
                             skills_str))
         conn.commit()
         conn.close()
@@ -117,6 +107,43 @@ def upload_resume():
         return jsonify({'message': '简历上传成功'}), 200
     else:
         return jsonify({'message': '文件上传失败'}), 400
+
+
+@students.route('/resume/post-info/<int:user_id>', methods=['POST'])
+def post_resume_info(user_id):
+    identity = request.form['identity']
+    privacy_setting = request.form['privacySetting']
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM user WHERE id = ?', (user_id,))
+    user = cursor.fetchone()
+    if not user:
+        return jsonify({'message': '用户不存在'}), 404
+
+    cursor.execute('UPDATE user SET identity = ? WHERE id = ?', (identity, user_id))
+
+    cursor.execute('''
+                    SELECT * FROM student_info WHERE user_id = ?
+                ''', (user_id,))
+    existing_info = cursor.fetchone()
+
+    if existing_info:
+        # ljl:如果已存在，更新信息
+        cursor.execute('''
+                        UPDATE student_info SET privacy_setting = ?
+                        WHERE user_id = ?
+                    ''', (privacy_setting, user_id))
+    else:
+        # ljl:插入数据
+        cursor.execute('''
+                            INSERT INTO student_info (user_id, privacy_setting)
+                            VALUES (?,?)''',
+                       (user_id, privacy_setting))
+    conn.commit()
+    conn.close()
+
+    return jsonify({'message': '隐私设置上传成功'}), 200
 
 
 @students.route('/students/get-info/<int:user_id>', methods=['GET'])

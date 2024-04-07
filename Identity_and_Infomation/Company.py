@@ -47,11 +47,6 @@ def get_company_info(user_id):
 @companies.route('/companies/create-info', methods=['POST'])
 def create_company_info():
     data = request.get_json()
-    required_fields = ['userId', 'name', 'job', 'description', 'education', 'manager', 'salary', 'address', 'link']
-
-    # 检查所有必填字段是否已填写
-    if not all(field in data for field in required_fields):
-        return jsonify({'message': '缺少必填信息'}), 400
 
     conn = get_db_connection()
     cursor = conn.cursor()
