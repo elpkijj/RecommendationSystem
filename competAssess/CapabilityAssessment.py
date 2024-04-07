@@ -1,17 +1,9 @@
 import json
 import os
-from py2neo import Graph
+
 from zhipuai import ZhipuAI
 client = ZhipuAI(api_key="9a39f8fd6b3776ef950aeb2421a393b8.ed2wnpLn0VGh3YUX") # 填写您自己的APIKey
-graph = Graph("http://localhost:7474", auth=("neo4j", "XzJEunfiT2G.t2Y"), name="neo4j")
-def query_skills(id):
-    query = f"""
-    MATCH (i:Identity {{name: '{id}'}})-[:CONTAINS]->(k:Keyword)
-    RETURN k.name AS Keyword
-    """
-    result = graph.run(query).data()
-    # 修改这里，直接返回一个平面列表
-    return [item['Keyword'] for item in result]
+
 def calculate_skills_match_percentage(resume_skills, work_keywords):
     # 将简历技能字符串分割为列表，并去除空格
     resume_skills_list = [skill.strip() for skill in resume_skills.split(',')]
@@ -47,19 +39,28 @@ def get_improvement_suggestions(skill_gaps):
     suggestions=""
     return suggestions
 
-
-
+def access(work_id,resume_path,all_info_path):
+    with open(resume_path, 'r', encoding='utf-8') as file:
+        data = json.load(file)  # 直接从文件中读取并解析JSON数据
+    resume_skills = data['skills']
+    with open(all_info_path, 'r', encoding='utf-8') as f:
+        work_data = json.load(f)
+    work_info = {work['Identity']: work for work in work_data}
+    for id, work in work_info.items():
+        id = int(work['Identity'])
+        if work_id!=id :
+            continue
+        work_keywords = work_info[str(work_id)]['Keywords']
+        break
+    missing_skills= identify_skill_gaps(resume_skills, work_keywords)
+    print(missing_skills)
+    suggestions = get_improvement_suggestions(missing_skills)
+    print(suggestions)
 
 work_id = 4601
-with open('resume.json', 'r', encoding='utf-8') as file:
-    data = json.load(file)  # 直接从文件中读取并解析JSON数据
-resume_skills = data['skills']
-work_keywords = query_skills(work_id)
-match_percentage = calculate_skills_match_percentage(resume_skills, work_keywords)
-missing_skills= identify_skill_gaps(resume_skills, work_keywords)
-suggestions = get_improvement_suggestions(missing_skills)
-print(f"技能契合度百分比: {match_percentage:.2f}%")
-print(f"缺失的技能有: {missing_skills}")
-print(suggestions)
+resume_path='resume.json'
+all_info_path = 'all_info.json'
+access(work_id, resume_path, all_info_path)
+
 
 
