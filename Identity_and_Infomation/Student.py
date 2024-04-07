@@ -9,7 +9,6 @@ import re
 import json
 from py2neo import Graph, Node, Relationship
 
-
 students = Blueprint('students', __name__)
 
 DATABASE = 'Information.db'
@@ -243,11 +242,13 @@ def update_student_info():
         ''')
 
         # 调用函数并获取返回的数据
-        resume_data_path='resumes.json'
-        all_info_path='all_info.json'
-        city_location_path='city_coordinates_cache.json'
+        resume_data_path = 'resumes.json'
+        all_info_path = 'all_info.json'
+        city_location_path = 'city_coordinates_cache.json'
         all_scores = recommend_jobs(resume_data_path, user_id, all_info_path, city_location_path)
 
+        cursor.execute('DELETE FROM recommended_jobs WHERE user_id = ?', (user_id,))
+        conn.commit()
         # 遍历返回的数据并插入数据库表中（这里有一点不确定，架设了all_score有多项数据）
         for score_data in all_scores:
             # 提取各项数据
@@ -318,17 +319,22 @@ def fetch_student_info(user_id):
 
 def save_student_info_to_json(student_info, filename='resumes.json'):
     try:
-        # 尝试以读模式打开文件并加载现有数据
         with open(filename, 'r', encoding='utf-8') as file:
             existing_data = json.load(file)
     except (FileNotFoundError, json.JSONDecodeError):
-        # 如果文件不存在或文件为空，则创建一个新的列表
         existing_data = []
 
-    # 将新的学生信息追加到现有数据中
-    existing_data.append(student_info)
+    # 检查并更新或追加学生信息
+    updated = False
+    for i, existing_info in enumerate(existing_data):
+        if existing_info['user_id'] == student_info['user_id']:
+            existing_data[i] = student_info  # 更新学生信息
+            updated = True
+            break
 
-    # 以写模式打开文件并更新数据
+    if not updated:
+        existing_data.append(student_info)  # 追加新的学生信息
+
     with open(filename, 'w', encoding='utf-8') as file:
         json.dump(existing_data, file, ensure_ascii=False, indent=4)
 

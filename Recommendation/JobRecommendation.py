@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify, Blueprint
 import sqlite3
+from competAssess.CapabilityAssessment import access
 
 jobs = Blueprint('jobs', __name__)
 
@@ -19,7 +20,7 @@ def get_recommended_jobs(user_id):
 
     # 查询推荐职位ID和匹配度
     cursor.execute('''
-           SELECT ci.name, ci.job, ci.description, ci.education, ci.manager, ci.salary, ci.address, ci.link,
+           SELECT ci.id, ci.name, ci.job, ci.description, ci.education, ci.manager, ci.salary, ci.address, ci.link,
                   rj.match, rj.educationMatch, rj.addressMatch, rj.salaryMatch, rj.abilityMatch
            FROM recommended_jobs rj
            JOIN company_info ci ON rj.job_id = ci.id
@@ -38,6 +39,15 @@ def get_recommended_jobs(user_id):
 
     conn.close()
     return jsonify(jobs_list), 200
+
+
+@jobs.route('/jobs/evaluation/<int:user_id>/<int:job_id>', methods=['GET'])
+def ability_evaluation(user_id, job_id):
+    resume_path = 'resumes.json'
+    all_info_path = 'all_info.json'
+    evaluation = access(user_id, job_id, resume_path, all_info_path)
+
+    return jsonify(evaluation), 200
 
 
 @jobs.route('/jobs/sort/<int:user_id>/<criteria>', methods=['GET'])
@@ -62,7 +72,7 @@ def sort_jobs(user_id, criteria):
 
     # 筛选并查询推荐职位ID和匹配度
     sql_query = '''
-               SELECT ci.name, ci.job, ci.description, ci.education, ci.manager, ci.salary, ci.address, ci.link,
+               SELECT ci.id, ci.name, ci.job, ci.description, ci.education, ci.manager, ci.salary, ci.address, ci.link,
                       rj.match, rj.educationMatch, rj.addressMatch, rj.salaryMatch, rj.abilityMatch
                FROM recommended_jobs rj
                JOIN company_info ci ON rj.job_id = ci.id

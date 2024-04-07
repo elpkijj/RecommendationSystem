@@ -19,7 +19,7 @@ def get_recommended_talents(user_id):
     # 查询推荐人才ID和匹配度
     cursor.execute('''
                SELECT si.id, si.name, si.sex, si.lowestSalary, si.highestSalary, si.phone, si.education, si.year, si.intention, si.intentionCity, si.email, si.profession, si.educationExperience, si.internship, si.project, si.advantage, si.skills,
-                      rc.match, rc.educationMatch, rc.abilityMatch
+                      rc.match, rc.educationMatch, rc.salaryMatch, rc.addressMatch, rc.abilityMatch
                FROM recommended_candidates rc
                JOIN student_info si ON rc.candidate_id = si.id
                WHERE rc.user_id = ?
@@ -60,7 +60,7 @@ def sort_candidates(user_id, criteria):
     # 筛选并查询推荐职位ID和匹配度
     sql_query = '''
                    SELECT si.id, si.name, si.sex, si.lowestSalary, si.highestSalary, si.phone, si.education, si.year, si.intention, si.intentionCity, si.email, si.profession, si.educationExperience, si.internship, si.project, si.advantage, si.skills,
-                          rc.match, rc.educationMatch, rc.abilityMatch
+                          rc.match, rc.educationMatch, rc.salaryMatch, rc.addressMatch, rc.abilityMatch
                    FROM recommended_candidates rc
                    JOIN student_info si ON rc.candidate_id = si.id
                    WHERE rc.user_id = ?

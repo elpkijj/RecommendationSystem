@@ -5,6 +5,12 @@ from py2neo import Graph, Node, Relationship
 import json
 from Identity_and_Infomation.loginRec import recommend_resumes
 
+with open('keywords.txt', 'r', encoding='utf-8') as file:
+    keywords = file.read().split('、')
+# 添加城市列表
+with open('cityname.txt', 'r', encoding='utf-8') as file:
+    cities = file.read().splitlines()
+
 companies = Blueprint('companies', __name__)
 DATABASE = 'Information.db'
 
@@ -78,9 +84,9 @@ def create_company_info():
     cursor.execute('SELECT * FROM company_info WHERE user_id = ?', (data['userId'],))
     existing_info = cursor.fetchone()
 
-    #实体抽取
-    skills=[]
-    city=None
+    # 实体抽取
+    skills = []
+    city = None
 
     # 创建关键词节点并建立关系
     for keyword in keywords:
@@ -88,26 +94,26 @@ def create_company_info():
             skills.append(keyword)
     for c in cities:
         if c in data['address']:
-            city=c
+            city = c
             break
     # 插入新数据
     skills_json = json.dumps(skills)
-    data_to_insert = [data['name'], data['job'], data['description'], data['education'], data['manager'],
-            data['salary'], data['address'], data['link'],skills_json,city]
+
     if existing_info:
         # 更新现有记录
         cursor.execute('''
             UPDATE company_info
             SET name = ?, job = ?, description = ?, education = ?, manager = ?, salary = ?, address = ?, link = ?,skills=?,city=?
             WHERE user_id = ?
-        ''',data_to_insert + [user_id])
+        ''', (data['name'], data['job'], data['description'], data['education'], data['manager'],
+              data['salary'], data['address'], data['link'], skills_json, city, data['userId'],))
     else:
         cursor.execute('''
                         INSERT INTO company_info (user_id, name, job, salary, education, description, manager, address, link,skills,city) 
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?,?,?)
-                    ''', data_to_insert)
-
-
+                    ''', (
+            data['userId'], data['name'], data['job'], data['description'], data['education'], data['manager'],
+            data['salary'], data['address'], data['link'], skills_json, city,))
 
     conn.commit()
 
@@ -143,9 +149,9 @@ def create_company_info():
         work_id = user_id
         # 假设的特定工作ID
         all_info_path = 'all_info.json'
-        city_location_path= 'city_coordinates_cache.json'
-        all_scores = recommend_resumes(resumes_data_path, work_id, all_info_path,city_location_path)
-        #数据库操作
+        city_location_path = 'city_coordinates_cache.json'
+        all_scores = recommend_resumes(resumes_data_path, work_id, all_info_path, city_location_path)
+        # 数据库操作
         conn = get_db_connection()
         cursor = conn.cursor()
         # 创建推荐候选人表
@@ -163,6 +169,9 @@ def create_company_info():
                     FOREIGN KEY(candidate_id) REFERENCES student_info(id)
                 );
                 ''')
+
+        cursor.execute('DELETE FROM recommended_candidates WHERE user_id = ?', (user_id,))
+        conn.commit()
 
         # 遍历返回的数据并插入数据库表中
         for score_data in all_scores:
@@ -206,6 +215,7 @@ def create_company_info():
         # print(json_data)
         conn.commit()
         conn.close()
+
     # 在另一个线程中运行推荐算法和其他耗时操作
     threading.Thread(target=async_process, args=(data,)).start()
 
@@ -222,7 +232,8 @@ def fetch_company_info(user_id):
     conn = sqlite3.connect('Information.db')
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
-    cursor.execute('SELECT id, user_id, education,salary,address,skills FROM company_info where user_id=?', (user_id,))
+    cursor.execute('SELECT id, user_id, education,salary,address,skills,city FROM company_info where user_id=?',
+                   (user_id,))
     company_info_row = cursor.fetchone()
     company_info_dist = dict(company_info_row)
     conn.close()
@@ -231,17 +242,21 @@ def fetch_company_info(user_id):
 
 def save_company_info_to_json(company_info, filename='all_info.json'):
     try:
-        # 尝试以读模式打开文件并加载现有数据
         with open(filename, 'r', encoding='utf-8') as file:
             existing_data = json.load(file)
     except (FileNotFoundError, json.JSONDecodeError):
-        # 如果文件不存在或文件为空，则创建一个新的列表
         existing_data = []
 
-    # 将新的学生信息追加到现有数据中
-    existing_data.append(company_info)
+    # 检查并更新或追加公司信息
+    updated = False
+    for i, existing_info in enumerate(existing_data):
+        if existing_info['user_id'] == company_info['user_id']:
+            existing_data[i] = company_info  # 更新公司信息
+            updated = True
+            break
 
-    # 以写模式打开文件并更新数据
+    if not updated:
+        existing_data.append(company_info)  # 追加新的公司信息
+
     with open(filename, 'w', encoding='utf-8') as file:
         json.dump(existing_data, file, ensure_ascii=False, indent=4)
-
