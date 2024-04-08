@@ -206,22 +206,17 @@ def update_student_info():
                   data['phone'], data['education'], data['year'], data['intention'], data['intentionCity'],
                   data['email'], data['profession'], data['educationExperience'], data['internship'],
                   data['project'], data['advantage']))
-    # 提取专业技能
-    skills_keywords = ['技能', '熟悉', '了解']
-    skills = None
-    for section in [data['educationExperience'], data['internship'], data['project'], data['advantage']]:
-        if section:
-            for keyword in skills_keywords:
-                if keyword in section:
-                    start_index = section.index(keyword) + len(keyword)
-                    end_index = section.find('\n\n', start_index)  # 假设信息之间以双换行符分隔
-                    skills = section[start_index:end_index].strip()
-                    break
-            if skills:
-                matched_skills = match_keywords(skills, './Identity_and_Infomation/description.txt')
-                skills = matched_skills
-                break
-    data['skills'] = ', '.join(skills) if skills else ''
+    # ljl修改了一下提取逻辑
+    with open('keywords.txt', 'r', encoding='utf-8') as file:
+        keywords = file.read().split('、')
+    skills = []
+    for keyword in keywords:
+        if keyword in [data['educationExperience'], data['internship'], data['project'], data['advantage']]:
+            skills.append(keyword)
+    skills_json = json.dumps(skills, ensure_ascii=False)
+    if data['skills']:
+        data['skills'] += ','
+    data['skills'] += skills_json
     cursor.execute('''
                 UPDATE student_info SET skills = ?
                 WHERE user_id = ?
