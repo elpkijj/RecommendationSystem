@@ -36,6 +36,7 @@ def get_recommended_talents(user_id):
     candidates_list = [dict(zip(columns, candidate)) for candidate in candidates]
 
     conn.close()
+    print(candidates_list)
     return jsonify(candidates_list), 200
     
 

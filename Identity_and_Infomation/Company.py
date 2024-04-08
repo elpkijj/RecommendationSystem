@@ -26,7 +26,7 @@ def calculate_last_active(created_at):
     today = datetime.now().date()
     delta = today - created_at
     if delta.days == 0:
-        return "刚刚"
+        return "刚刚活跃"
     elif delta.days <= 7:
         return f"{delta.days}天之内活跃"
     elif delta.days <= 28:
@@ -97,7 +97,7 @@ def create_company_info():
     cursor.execute('SELECT * FROM company_info WHERE user_id = ?', (data['userId'],))
     existing_info = cursor.fetchone()
 
-    created_at = datetime.now().strftime('%Y-%m-%d')  # 假设前端传来的日期格式是'YYYY-MM-DD'
+    created_at = datetime.now().date()  # 假设前端传来的日期格式是'YYYY-MM-DD'
     lastActive = calculate_last_active(created_at)
 
     # 实体抽取
@@ -236,7 +236,7 @@ def create_company_info():
 
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute('UPDATE user SET first_login = 0 WHERE id = ?', data['userId'])
+    cursor.execute('UPDATE user SET first_login = 0 WHERE id = ?', (data['userId'],))
     conn.commit()
     conn.close()
     return jsonify({'message': '企业信息提交成功'}), 200

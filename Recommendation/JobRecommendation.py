@@ -56,7 +56,7 @@ def get_recommended_jobs(user_id):
     for job in jobs:
         job_dict = dict(zip(columns, job))
         # 转换skills字符串为列表
-        print(job_dict['skills'])
+        # print(job_dict['skills'])
         jobs_list.append(job_dict)
 
     conn.close()
@@ -92,6 +92,7 @@ def sort_jobs(user_id, criteria):
 
     # 获取排序字段
     sort_field = sort_fields[criteria]
+    print(sort_field)
 
     # 筛选并查询推荐职位ID和匹配度
     sql_query = '''
