@@ -19,12 +19,14 @@ def insert_data_from_csv(csv_filepath):
     cursor.execute('''CREATE TABLE IF NOT EXISTS company_info (
                                                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                                                 user_id INTEGER NOT NULL,
-                                                name nchar(5),
+                                                name nchar(30),
                                                 job nchar(30),
                                                 description nvarchar(255),
                                                 education nchar(4),
                                                 manager nchar(10),
                                                 salary char(20),
+                                                created_at DATE,
+                                                lastActive nchar(30),
                                                 address nvarchar(30),
                                                 link varchar(150),
                                                 skills varchar(255),
@@ -51,10 +53,10 @@ def insert_data_from_csv(csv_filepath):
                     city=c
                     break
             skills_json = json.dumps(skills)
-            data_to_insert = [row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[8], row[9],skills_json,city]
+            data_to_insert = [row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8], row[9],skills_json,city]
             cursor.execute('''
-                            INSERT INTO company_info (user_id, name, job, salary, education, description, manager, address, link,skills,city) 
-                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?,?,?)
+                            INSERT INTO company_info (user_id, name, job, salary, education, description, manager, lastActive, address, link,skills,city) 
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?,?,?,?)
                         ''', data_to_insert)
     # 提交事务
     conn.commit()

@@ -3,6 +3,7 @@ import sqlite3
 import threading
 from py2neo import Graph, Node, Relationship
 import json
+from datetime import datetime, timedelta
 from Identity_and_Infomation.loginRec import recommend_resumes
 
 with open('keywords.txt', 'r', encoding='utf-8') as file:
@@ -19,6 +20,21 @@ def get_db_connection():
     conn = sqlite3.connect(DATABASE)
     conn.row_factory = sqlite3.Row
     return conn
+
+
+def calculate_last_active(created_at):
+    today = datetime.now().date()
+    delta = today - created_at
+    if delta.days == 0:
+        return "刚刚"
+    elif delta.days <= 7:
+        return f"{delta.days}天之内活跃"
+    elif delta.days <= 28:
+        weeks = delta.days // 7
+        return f"{weeks}周之内活跃"
+    else:
+        months = delta.days // 30  # 简化计算，假设每个月30天
+        return f"{months}月之内活跃"
 
 
 @companies.route('/companies/get-info/<int:user_id>', methods=['GET'])
@@ -62,12 +78,14 @@ def create_company_info():
     cursor.execute('''CREATE TABLE IF NOT EXISTS company_info (
                                                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                                                     user_id INTEGER NOT NULL,
-                                                    name nchar(5),
+                                                    name nchar(30),
                                                     job nchar(30),
                                                     description nvarchar(255),
                                                     education nchar(4),
                                                     manager nchar(10),
                                                     salary char(20),
+                                                    created_at DATE,
+                                                    lastActive nchar(30),
                                                     address nvarchar(30),
                                                     link varchar(150),
                                                     skills varchar(255),
@@ -78,6 +96,9 @@ def create_company_info():
     # 检查是否已有企业信息
     cursor.execute('SELECT * FROM company_info WHERE user_id = ?', (data['userId'],))
     existing_info = cursor.fetchone()
+
+    created_at = datetime.now().strftime('%Y-%m-%d')  # 假设前端传来的日期格式是'YYYY-MM-DD'
+    lastActive = calculate_last_active(created_at)
 
     # 实体抽取
     skills = []
@@ -97,17 +118,17 @@ def create_company_info():
         # 更新现有记录
         cursor.execute('''
             UPDATE company_info
-            SET name = ?, job = ?, description = ?, education = ?, manager = ?, salary = ?, address = ?, link = ?,skills=?,city=?
+            SET name = ?, job = ?, description = ?, education = ?, manager = ?, salary = ?, address = ?, link = ?,skills=?,city=?, created_at=?, lastActive=?
             WHERE user_id = ?
         ''', (data['name'], data['job'], data['description'], data['education'], data['manager'],
-              data['salary'], data['address'], data['link'], skills_json.decode('utf-8'), city, data['userId'],))
+              data['salary'], data['address'], data['link'], skills_json, city, created_at, lastActive, data['userId'],))
     else:
         cursor.execute('''
-                        INSERT INTO company_info (user_id, name, job, salary, education, description, manager, address, link,skills,city) 
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?,?,?)
+                        INSERT INTO company_info (user_id, name, job, salary, education, description, manager, address, link,skills,city, created_at, lastActive) 
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?,?,?,?,?)
                     ''', (
             data['userId'], data['name'], data['job'], data['description'], data['education'], data['manager'],
-            data['salary'], data['address'], data['link'], skills_json.decode('utf-8'), city,))
+            data['salary'], data['address'], data['link'], city, created_at, skills_json, city,))
 
     conn.commit()
 

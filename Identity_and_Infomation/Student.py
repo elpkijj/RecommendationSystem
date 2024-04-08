@@ -214,13 +214,11 @@ def update_student_info():
         if keyword in [data['educationExperience'], data['internship'], data['project'], data['advantage']]:
             skills.append(keyword)
     skills_json = json.dumps(skills, ensure_ascii=False)
-    if data['skills']:
-        data['skills'] += ','
-    data['skills'] += skills_json
     cursor.execute('''
                 UPDATE student_info SET skills = ?
                 WHERE user_id = ?
-            ''', (data['skills'].decode('utf-8'), user_id))
+            ''', (skills_json, user_id))
+    print(data['educationExperience'], data['internship'], data['project'], data['advantage'],skills_json)
     conn.commit()
     conn.close()
 

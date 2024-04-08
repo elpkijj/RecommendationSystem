@@ -207,11 +207,11 @@ def recommend_resumes(resumes_data_path, work_id, all_info_path, city_location_p
     with open(all_info_path, 'r', encoding='utf-8') as f:
         work_data = json.load(f)
     work_info = {work['user_id']: work for work in work_data}
-    work_info_item = work_info.get(str(work_id), {})
-    work_keywords = work_info_item.get('Keywords', [])
-    work_salary = work_info_item.get('Salary_Range', "Unknown")
-    work_address = work_info_item.get('City', "Unknown")
-    work_education = work_info_item.get('Education_Requirement', "Unknown")
+    work_info_item = work_info.get(work_id, {})
+    work_keywords = work_info_item.get('skills', [])
+    work_salary = work_info_item.get('salary', "Unknown")
+    work_address = work_info_item.get('city', "Unknown")
+    work_education = work_info_item.get('education', "Unknown")
 
     # 从JSON文件中读取城市与坐标的映射信息
     with open(city_location_path, 'r') as f:

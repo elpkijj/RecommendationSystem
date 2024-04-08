@@ -29,7 +29,7 @@ def identify_skill_gaps(resume_skills, work_keywords):
 
 
 def get_improvement_suggestions(skill_gaps):
-    client = ZhipuAI(api_key="9a39f8fd6b3776ef950aeb2421a393b8.ed2wnpLn0VGh3YUX")
+    client = ZhipuAI(api_key="f2065e033cc5c35ddb6ceadc439756c6.mJmEtnZPVPO8mzoT")
     messages = [
         {"role": "system", "content": "你是一名职业发展顾问,善于给出建设性的职业发展建议。"},
         {"role": "user",
@@ -59,7 +59,7 @@ def access(user_id, work_id, resume_path, all_info_path):
         work_data = json.load(f)
     work_info = {work['id']: work for work in work_data}
     work_info_item = work_info.get(work_id, {})
-    work_keywords = work_info_item['skills']
+    work_keywords = work_info_item.get('skills', [])
     missing_skills = identify_skill_gaps(resume_skills, work_keywords)
     # print(missing_skills)
     suggestions = get_improvement_suggestions(missing_skills)

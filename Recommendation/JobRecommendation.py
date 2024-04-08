@@ -1,10 +1,28 @@
+import json
+
 from flask import Flask, request, jsonify, Blueprint
+from datetime import datetime, timedelta
 import sqlite3
 from competAssess.CapabilityAssessment import access
 
 jobs = Blueprint('jobs', __name__)
 
 DATABASE = 'Information.db'
+
+
+def calculate_last_active(created_at):
+    today = datetime.now().date()
+    delta = today - created_at
+    if delta.days == 0:
+        return "刚刚"
+    elif delta.days <= 7:
+        return f"{delta.days}天之内活跃"
+    elif delta.days <= 28:
+        weeks = delta.days // 7
+        return f"{weeks}周之内活跃"
+    else:
+        months = delta.days // 30  # 简化计算，假设每个月30天
+        return f"{months}月之内活跃"
 
 
 def get_db_connection():
@@ -20,7 +38,7 @@ def get_recommended_jobs(user_id):
 
     # 查询推荐职位ID和匹配度
     cursor.execute('''
-           SELECT ci.id, ci.name, ci.job, ci.description, ci.education, ci.manager, ci.salary, ci.address, ci.link,
+           SELECT ci.id, ci.name, ci.job, ci.description, ci.education, ci.manager, ci.salary, ci.address, ci.link, ci.city, ci.skills, ci.lastActive,
                   rj.match, rj.educationMatch, rj.addressMatch, rj.salaryMatch, rj.abilityMatch
            FROM recommended_jobs rj
            JOIN company_info ci ON rj.job_id = ci.id
@@ -34,10 +52,15 @@ def get_recommended_jobs(user_id):
 
     # 获取列名
     columns = [column[0] for column in cursor.description]
-    # 将每个查询结果转换为字典
-    jobs_list = [dict(zip(columns, job)) for job in jobs]
+    jobs_list = []
+    for job in jobs:
+        job_dict = dict(zip(columns, job))
+        # 转换skills字符串为列表
+        print(job_dict['skills'])
+        jobs_list.append(job_dict)
 
     conn.close()
+
     return jsonify(jobs_list), 200
 
 
@@ -72,7 +95,7 @@ def sort_jobs(user_id, criteria):
 
     # 筛选并查询推荐职位ID和匹配度
     sql_query = '''
-               SELECT ci.id, ci.name, ci.job, ci.description, ci.education, ci.manager, ci.salary, ci.address, ci.link,
+               SELECT ci.id, ci.name, ci.job, ci.description, ci.education, ci.manager, ci.salary, ci.address, ci.link, ci.city, ci.skills, ci.lastActive,
                       rj.match, rj.educationMatch, rj.addressMatch, rj.salaryMatch, rj.abilityMatch
                FROM recommended_jobs rj
                JOIN company_info ci ON rj.job_id = ci.id
