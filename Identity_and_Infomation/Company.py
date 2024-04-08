@@ -92,8 +92,7 @@ def create_company_info():
             city = c
             break
     # 插入新数据
-    skills_json = json.dumps(skills)
-
+    skills_json = json.dumps(skills, ensure_ascii=False)
     if existing_info:
         # 更新现有记录
         cursor.execute('''
