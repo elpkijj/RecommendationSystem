@@ -93,7 +93,7 @@ def upload_resume(user_id):
                         INSERT INTO student_info (user_id, name,sex,lowestSalary, highestSalary,phone,education,
                         year,intention,intentionCity,email,profession,educationExperience,internship,project,advantage,
                         resume_path,skills)
-                        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)''',
+                        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)''',
                            (user_id, resume_info.get('姓名'), resume_info.get('性别'), resume_info.get('期望薪资下限'),
                             resume_info.get('期望薪资上限'), resume_info.get('联系电话'),
                             resume_info.get('学历'), resume_info.get('年龄'), resume_info.get('求职意向'),
@@ -111,8 +111,9 @@ def upload_resume(user_id):
 
 @students.route('/resume/post-info/<int:user_id>', methods=['POST'])
 def post_resume_info(user_id):
-    identity = request.form['identity']
-    privacy_setting = request.form['privacySetting']
+    data = request.get_json()
+    identity = data['identity']
+    privacy_setting = data['privacySetting']
 
     conn = get_db_connection()
     cursor = conn.cursor()
