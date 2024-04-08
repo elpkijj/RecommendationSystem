@@ -220,7 +220,7 @@ def update_student_info():
     cursor.execute('''
                 UPDATE student_info SET skills = ?
                 WHERE user_id = ?
-            ''', (data['skills'], user_id))
+            ''', (data['skills'].decode('utf-8'), user_id))
     conn.commit()
     conn.close()
 
