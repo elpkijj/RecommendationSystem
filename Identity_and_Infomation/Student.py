@@ -210,8 +210,9 @@ def update_student_info():
     with open('keywords.txt', 'r', encoding='utf-8') as file:
         keywords = file.read().split('、')
     skills = []
+    data_str = json.dumps(data, ensure_ascii=False)
     for keyword in keywords:
-        if keyword in [data['educationExperience'], data['internship'], data['project'], data['advantage']]:
+        if keyword in data_str:
             skills.append(keyword)
     skills_json = json.dumps(skills, ensure_ascii=False)
     cursor.execute('''
