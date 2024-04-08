@@ -3,7 +3,7 @@ import os
 
 from zhipuai import ZhipuAI
 
-client = ZhipuAI(api_key="9a39f8fd6b3776ef950aeb2421a393b8.ed2wnpLn0VGh3YUX")  # 填写您自己的APIKey
+client = ZhipuAI(api_key="f2065e033cc5c35ddb6ceadc439756c6.mJmEtnZPVPO8mzoT")  # 填写您自己的APIKey
 
 
 def calculate_skills_match_percentage(resume_skills, work_keywords):
