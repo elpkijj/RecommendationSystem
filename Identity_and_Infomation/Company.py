@@ -100,14 +100,14 @@ def create_company_info():
             SET name = ?, job = ?, description = ?, education = ?, manager = ?, salary = ?, address = ?, link = ?,skills=?,city=?
             WHERE user_id = ?
         ''', (data['name'], data['job'], data['description'], data['education'], data['manager'],
-              data['salary'], data['address'], data['link'], skills_json, city, data['userId'],))
+              data['salary'], data['address'], data['link'], skills_json.decode('utf-8'), city, data['userId'],))
     else:
         cursor.execute('''
                         INSERT INTO company_info (user_id, name, job, salary, education, description, manager, address, link,skills,city) 
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?,?,?)
                     ''', (
             data['userId'], data['name'], data['job'], data['description'], data['education'], data['manager'],
-            data['salary'], data['address'], data['link'], skills_json, city,))
+            data['salary'], data['address'], data['link'], skills_json.decode('utf-8'), city,))
 
     conn.commit()
 
