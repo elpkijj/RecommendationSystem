@@ -266,6 +266,8 @@ def save_company_info_to_json(company_info, filename='all_info.json'):
     updated = False
     for i, existing_info in enumerate(existing_data):
         if existing_info['user_id'] == company_info['user_id']:
+            if isinstance(company_info['skills'], str):
+                company_info['skills'] = json.loads(company_info['skills'])
             existing_data[i] = company_info  # 更新公司信息
             updated = True
             break
