@@ -36,7 +36,7 @@ def get_recommended_talents(user_id):
     candidates_list = [dict(zip(columns, candidate)) for candidate in candidates]
 
     conn.close()
-    print(candidates_list)
+    # print(candidates_list)
     return jsonify(candidates_list), 200
     
 
@@ -48,7 +48,9 @@ def sort_candidates(user_id, criteria):
     # 定义排序字段映射
     sort_fields = {
         'education': 'educationMatch',
-        'skills': 'skillsMatch'
+        'location': 'addressMatch',
+        'salary': 'salaryMatch',
+        'skills': 'abilityMatch'
     }
 
     # 检查是否为有效的筛选条件

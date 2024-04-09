@@ -47,6 +47,7 @@ def get_recommended_jobs(user_id):
            LIMIT 20
        ''', (user_id,))
     jobs = cursor.fetchall()
+    # print(jobs)
     if not jobs:
         return jsonify({'message': '未找到推荐职位'}), 404
 
@@ -83,7 +84,7 @@ def sort_jobs(user_id, criteria):
         'education': 'educationMatch',
         'location': 'addressMatch',
         'salary': 'salaryMatch',
-        'skills': 'skillsMatch'
+        'skills': 'abilityMatch'
     }
 
     # 检查是否为有效的筛选条件
@@ -92,7 +93,7 @@ def sort_jobs(user_id, criteria):
 
     # 获取排序字段
     sort_field = sort_fields[criteria]
-    print(sort_field)
+    # print(sort_field)
 
     # 筛选并查询推荐职位ID和匹配度
     sql_query = '''
@@ -115,6 +116,7 @@ def sort_jobs(user_id, criteria):
     columns = [column[0] for column in cursor.description]
     # 将每个查询结果转换为字典
     jobs_list = [dict(zip(columns, job)) for job in jobs]
+    # print(jobs_list)
 
     conn.close()
     return jsonify(jobs_list), 200
