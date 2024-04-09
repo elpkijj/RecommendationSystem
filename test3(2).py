@@ -52,7 +52,7 @@ def insert_data_from_csv(csv_filepath):
                 if c in row[8]:
                     city=c
                     break
-            skills_json = json.dumps(skills)
+            skills_json = json.dumps(skills, ensure_ascii=False)
             data_to_insert = [row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8], row[9],skills_json,city]
             cursor.execute('''
                             INSERT INTO company_info (user_id, name, job, salary, education, description, manager, lastActive, address, link,skills,city) 
