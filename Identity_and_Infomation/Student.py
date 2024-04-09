@@ -350,6 +350,8 @@ def save_student_info_to_json(student_info, filename='resumes.json'):
     updated = False
     for i, existing_info in enumerate(existing_data):
         if existing_info['user_id'] == student_info['user_id']:
+            if isinstance(student_info['skills'], str):
+                student_info['skills'] = json.loads(student_info['skills'])
             existing_data[i] = student_info  # 更新学生信息
             updated = True
             break
