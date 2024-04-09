@@ -158,22 +158,22 @@ def calculate_education_match_percentage(resume_education, work_education):
     resume_level = education_levels.get(resume_education, 0)
     work_level = education_levels.get(work_education, 0)
 
-    # 定义衰减系数 \lambda
-    lambda_ = 0.2  # 例如：超过岗位要求的每一级教育水平增加10%的契合度
+    # 如果简历学历低于工作学历要求
+    if resume_level < work_level:
+        return 0
 
-    # 如果简历学历等于或高于工作学历
-    if resume_level >= work_level:
-        # 根据超出的教育水平计算契合度
-        match_percentage = 1 + lambda_ * (resume_level - work_level)
+    # 如果简历学历等于工作学历要求
+    elif resume_level == work_level:
+        return 1
+
+    # 如果简历学历高于工作学历要求
     else:
-        # 如果简历学历低于工作学历，则根据差距进行计算
-        # 这里可以设定一个基础的衰减值，例如低于一个级别减少50%的契合度
-        # 这个逻辑部分根据您之前的逻辑进行了简化处理，具体的衰减策略可以根据实际需求调整
-        decay_factor = 0.5
-        gap = work_level - resume_level
-        match_percentage = max(0, 1 - gap * decay_factor)
-
-    return match_percentage
+        # 定义平滑减分的衰减系数，例如超出的每一级减少5%的契合度
+        smooth_decay_factor = 0.3
+        # 根据超出的教育水平计算契合度
+        match_percentage = 1 - smooth_decay_factor * (resume_level - work_level)
+        # 确保匹配度不会低于某个阈值，例如0.2
+        return max(0.5, match_percentage)
 
 
 def recommend_jobs(resumes_data_path, resume_id, all_info_path, city_location_path):
