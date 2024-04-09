@@ -173,7 +173,7 @@ def calculate_education_match_percentage(resume_education, work_education):
         # 根据超出的教育水平计算契合度
         match_percentage = 1 - smooth_decay_factor * (resume_level - work_level)
         # 确保匹配度不会低于某个阈值，例如0.2
-        return max(0.5, match_percentage)
+        return match_percentage
 
 
 def recommend_jobs(resumes_data_path, resume_id, all_info_path, city_location_path):
