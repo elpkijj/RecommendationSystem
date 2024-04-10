@@ -84,10 +84,14 @@ def calculate_salary_match_percentage(min_dream_salary, max_dream_salary, work_s
         return 1
     elif max_work_salary < min_dream_salary:
         # 期望薪资范围完全高于岗位薪资范围
-        difference_ratio = (min_dream_salary - max_work_salary) / max_work_salary
+        average_dream_salary = (min_dream_salary + max_dream_salary) / 2
+        average_work_salary = (min_work_salary + max_work_salary) / 2
+        difference_ratio = (average_dream_salary - average_work_salary) / average_work_salary
     elif max_dream_salary < min_work_salary:
         # 岗位薪资范围完全高于期望薪资范围
-        difference_ratio = (min_work_salary - max_dream_salary) / max_dream_salary
+        average_dream_salary = (min_dream_salary + max_dream_salary) / 2
+        average_work_salary = (min_work_salary + max_work_salary) / 2
+        difference_ratio = (average_work_salary - average_dream_salary) / average_dream_salary
     else:
         # 有交集的情况，但不是完全匹配
         intersection = min(max_dream_salary, max_work_salary) - max(min_dream_salary, min_work_salary)
@@ -101,6 +105,7 @@ def calculate_salary_match_percentage(min_dream_salary, max_dream_salary, work_s
     match_percentage = max(0.01, match_percentage)  # 使用0.01作为最低匹配度
 
     return match_percentage
+
 
 
 def location_match_percentage(resume_city, work_city, city_coordinates_cache):
