@@ -60,6 +60,36 @@ def get_company_info(user_id):
     return jsonify(info_dict), 200
 
 
+@companies.route('/companies/get-all-info/<int:user_id>', methods=['GET'])
+def get_company_all_info(user_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+            SELECT name, job, description, education,
+                   manager, salary, address, link
+            FROM company_info WHERE user_id = ?
+        ''', (user_id,))
+    infos = cursor.fetchall()  # 使用fetchall来获取所有匹配的行
+
+    if not infos:
+        return jsonify({'message': '用户信息不存在'}), 404
+
+    # 初始化一个列表来存储所有信息字典
+    infos_list = []
+
+    # 获取列名
+    columns = [column[0] for column in cursor.description]
+
+    # 遍历所有查询结果，将每个结果转换为字典，并添加到列表中
+    for info in infos:
+        info_dict = dict(zip(columns, info))
+        infos_list.append(info_dict)
+
+    conn.close()
+    return jsonify(infos_list), 200
+
+
+
 @companies.route('/companies/create-info', methods=['POST'])
 def create_company_info():
     data = request.get_json()

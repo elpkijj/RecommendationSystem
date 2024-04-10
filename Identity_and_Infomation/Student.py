@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify, current_app
+from flask import Blueprint, request, jsonify, current_app, send_from_directory
 from werkzeug.utils import secure_filename
 from Identity_and_Infomation.newRec import recommend_jobs
 import os
@@ -26,12 +26,20 @@ def upload_resume(user_id):
 
     if file:
         filename = secure_filename(file.filename)
+        filename = f"{user_id}_{filename}"
         # 检查文件是否为PDF格式
         if not filename.lower().endswith('pdf'):
             return jsonify({'message': '文件格式不正确，请上传PDF文件'}), 422
 
-        file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
+        # 保存文件到公共目录
+        public_resumes_dir = os.path.join(current_app.root_path, 'public', 'resumes')
+        if not os.path.exists(public_resumes_dir):
+            os.makedirs(public_resumes_dir)
+        file_path = os.path.join(public_resumes_dir, filename)
         file.save(file_path)
+
+        # 构建可通过Web访问的URL
+        web_accessible_url = request.url_root.rstrip('/') + '/public/resumes/' + filename
 
         # 实体提取逻辑
         text = read_pdf_file(file_path)
@@ -80,12 +88,12 @@ def upload_resume(user_id):
                     profession = ?, educationExperience = ?, internship = ?, project = ?, advantage = ?,
                     resume_path = ?, skills = ?
                     WHERE user_id = ?
-                ''', (resume_info.get('姓名'), resume_info.get('性别'), resume_info.get('期望薪资下限'),
-                      resume_info.get('期望薪资上限'), resume_info.get('联系电话'),
+                ''', (resume_info.get('姓名'), resume_info.get('性别'), resume_info.get('期望薪资下限')*1000,
+                      resume_info.get('期望薪资上限')*1000, resume_info.get('联系电话'),
                       resume_info.get('学历'), resume_info.get('年龄'), resume_info.get('求职意向'),
                       resume_info.get('意向城市'), resume_info.get('电子邮箱'),
                       resume_info.get('专业'), resume_info.get('教育经历'), resume_info.get('工作经历'),
-                      resume_info.get('项目经历'), resume_info.get('个人优势'), file_path,
+                      resume_info.get('项目经历'), resume_info.get('个人优势'), web_accessible_url,
                       skills_str, user_id))
         else:
             # ljl:插入数据
@@ -94,12 +102,12 @@ def upload_resume(user_id):
                         year,intention,intentionCity,email,profession,educationExperience,internship,project,advantage,
                         resume_path,skills)
                         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)''',
-                           (user_id, resume_info.get('姓名'), resume_info.get('性别'), resume_info.get('期望薪资下限'),
-                            resume_info.get('期望薪资上限'), resume_info.get('联系电话'),
+                           (user_id, resume_info.get('姓名'), resume_info.get('性别'), resume_info.get('期望薪资下限')*1000,
+                            resume_info.get('期望薪资上限')*1000, resume_info.get('联系电话'),
                             resume_info.get('学历'), resume_info.get('年龄'), resume_info.get('求职意向'),
                             resume_info.get('意向城市'), resume_info.get('电子邮箱'),
                             resume_info.get('专业'), resume_info.get('教育经历'), resume_info.get('工作经历'),
-                            resume_info.get('项目经历'), resume_info.get('个人优势'), file_path,
+                            resume_info.get('项目经历'), resume_info.get('个人优势'), web_accessible_url,
                             skills_str))
         conn.commit()
         conn.close()
@@ -191,7 +199,7 @@ def update_student_info():
                 phone = ?, education = ?, year = ?, intention = ?, intentionCity = ?, email = ?, 
                 profession = ?, educationExperience = ?, internship = ?, project = ?, advantage = ?
                 WHERE user_id = ?
-            ''', (data['name'], data['sex'], data['lowestSalary'], data['highestSalary'],
+            ''', (data['name'], data['sex'], data['lowestSalary']*1000, data['highestSalary']*1000,
                   data['phone'], data['education'], data['year'], data['intention'], data['intentionCity'],
                   data['email'], data['profession'], data['educationExperience'], data['internship'],
                   data['project'], data['advantage'], user_id))
@@ -202,7 +210,7 @@ def update_student_info():
                 phone, education, year, intention, intentionCity, email, profession, 
                 educationExperience, internship, project, advantage) 
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (user_id, data['name'], data['sex'], data['lowestSalary'], data['highestSalary'],
+            ''', (user_id, data['name'], data['sex'], data['lowestSalary']*1000, data['highestSalary']*1000,
                   data['phone'], data['education'], data['year'], data['intention'], data['intentionCity'],
                   data['email'], data['profession'], data['educationExperience'], data['internship'],
                   data['project'], data['advantage']))
@@ -219,7 +227,7 @@ def update_student_info():
                 UPDATE student_info SET skills = ?
                 WHERE user_id = ?
             ''', (skills_json, user_id))
-    print(data['educationExperience'], data['internship'], data['project'], data['advantage'],skills_json)
+    # print(data['educationExperience'], data['internship'], data['project'], data['advantage'],skills_json)
     conn.commit()
     conn.close()
 
@@ -258,6 +266,7 @@ def update_student_info():
             addressMatch REAL NOT NULL,
             salaryMatch REAL NOT NULL,
             abilityMatch REAL NOT NULL,
+            evaluation text,
             FOREIGN KEY(user_id) REFERENCES user(id)
             FOREIGN KEY(job_id) REFERENCES company_info(id)
         );

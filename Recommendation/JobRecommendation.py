@@ -69,7 +69,27 @@ def get_recommended_jobs(user_id):
 def ability_evaluation(user_id, job_id):
     resume_path = 'resumes.json'
     all_info_path = 'all_info.json'
-    evaluation = access(user_id, job_id, resume_path, all_info_path)
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+            SELECT evaluation FROM recommended_jobs 
+            WHERE user_id = ? AND job_id = ?
+        ''', (user_id, job_id))
+    result = cursor.fetchone()
+
+    if result and result['evaluation'] is not None:
+        # 如果存在evaluation数据，直接使用这个数据
+        evaluation = result['evaluation']
+    else:
+        # 如果不存在，调用access函数获取evaluation，并更新或插入到数据库中
+        evaluation = access(user_id, job_id, resume_path, all_info_path)
+        cursor.execute('''
+                UPDATE recommended_jobs SET evaluation = ?
+                WHERE user_id = ? AND job_id = ?
+            ''', (evaluation, user_id, job_id))
+
+    conn.commit()
+    conn.close()
 
     return jsonify(evaluation), 200
 

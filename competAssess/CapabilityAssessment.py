@@ -19,8 +19,8 @@ def calculate_skills_match_percentage(resume_skills, work_keywords):
 
 
 def identify_skill_gaps(resume_skills, work_keywords):
-    resume_skills_list = [skill.strip() for skill in resume_skills.split(',')]
-    resume_skills_set = set(resume_skills_list)
+    # resume_skills_list = [skill.strip() for skill in resume_skills.split(',')]
+    resume_skills_set = set(resume_skills)
     work_keywords_set = set(work_keywords)
 
     # 找出简历中缺失的关键技能

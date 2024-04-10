@@ -4,7 +4,7 @@ import os
 
 resumes = Blueprint('resumes', __name__)
 
-DATABASE = 'students.db'
+DATABASE = 'Information.db'
 
 
 def get_db_connection():
@@ -25,13 +25,12 @@ def view_resume(student_id):
         WHERE id = ?
     ''', (student_id,))
     resume = cursor.fetchone()
+    # print(resume)
+    # print(resume['resume_path'])
 
     if resume and resume['resume_path']:
         resume_path = resume['resume_path']
-        # 假设resume_path是简历PDF文件在服务器上的存储路径
-        directory = os.path.dirname(resume_path)
-        filename = os.path.basename(resume_path)
         # 返回文件路径，或使用send_from_directory直接发送文件
-        return send_from_directory(directory, filename, as_attachment=True)
+        return jsonify({'resume_url': resume_path}), 200
     else:
         return jsonify({'message': '简历未找到'}), 404

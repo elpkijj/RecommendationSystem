@@ -23,29 +23,35 @@ def get_coordinates_cached(city, city_coordinates_cache):
 
 
 def parse_salary(salary_str):
-    """解析薪资字符串，返回薪资范围的最小值和最大值"""
+    """解析薪资字符串，返回薪资范围的最小值和最大值。"""
+    # 移除最后一个'K'之后的所有内容
+    salary_str = re.sub(r'k[^k]*$', 'k', salary_str, flags=re.IGNORECASE)
+
     # 将字符串转换为小写以统一处理大写和小写的'K'
-    parts = salary_str.lower().replace('k', '000').split('-')
+    parts = salary_str.lower().replace('k', '').split('-')
+
     if len(parts) == 2:
+
         # 使用正则表达式提取字符串中的数字部分
         min_salary_numbers = re.findall(r'\d+', parts[0].strip())
         max_salary_numbers = re.findall(r'\d+', parts[1].strip())
         # 确保提取到的是数字并进行转换
         if min_salary_numbers:
-            min_salary = int(''.join(min_salary_numbers))
+            min_salary = int(''.join(min_salary_numbers)) *1000  # 正确处理最小薪资
         else:
-            min_salary = 0  # 如果没有找到数字，默认为0
+            min_salary = 1
         if max_salary_numbers:
-            max_salary = int(''.join(max_salary_numbers))
+            max_salary = int(''.join(max_salary_numbers)) *1000   # 正确处理最大薪资
         else:
-            max_salary = 10000  # 如果没有找到数字，默认为0
+            max_salary = 1
     else:
         # 对于单一值的情况，只需提取一次数字
+
         salary_numbers = re.findall(r'\d+', parts[0].strip())
         if salary_numbers:
-            min_salary = max_salary = int(''.join(salary_numbers))
+            min_salary = max_salary = int(''.join(salary_numbers))*1000
         else:
-            min_salary = max_salary = 10000  # 如果没有找到数字，默认为0
+            min_salary = max_salary = 1
     return min_salary, max_salary
 
 
@@ -61,11 +67,11 @@ def normalize_scores(scores):
 
 def calculate_skills_match_percentage(resume_skills, work_keywords):
     # 将简历技能字符串分割为列表，并去除空格
-    resume_skills_list = [skill.strip() for skill in resume_skills.split(',')]
+    # resume_skills_list = [skill.strip() for skill in resume_skills.split(',')]
 
     # 计算交集和并集
-    skills_intersection = set(resume_skills_list).intersection(set(work_keywords))
-    skills_union = set(resume_skills_list).union(set(work_keywords))
+    skills_intersection = set(resume_skills).intersection(set(work_keywords))
+    skills_union = set(resume_skills).union(set(work_keywords))
 
     # 计算契合度百分比
     match_percentage = len(skills_intersection) / len(skills_union)
@@ -103,6 +109,7 @@ def calculate_salary_match_percentage(min_dream_salary, max_dream_salary, work_s
     smooth_factor = 0.5
     match_percentage = 1 - (difference_ratio * smooth_factor)
     match_percentage = max(0.01, match_percentage)  # 使用0.01作为最低匹配度
+    print(min_dream_salary, max_dream_salary, min_work_salary, max_work_salary, match_percentage)
 
     return match_percentage
 
@@ -235,13 +242,13 @@ def recommend_jobs(resumes_data_path, resume_id, all_info_path, city_location_pa
     for work_id in sorted_scores:
         all_scores.append({
             "work_id": work_id,
-            "weighted_score": scores[work_id[0]],
-            "skill_score": skill_scores[work_id[0]],
-            "education_score": edu_scores[work_id[0]],
-            "salary_score": salary_scores[work_id[0]],
-            "city_score": city_scores[work_id[0]]
+            "weighted_score": round(scores[work_id[0]]*100, 1),
+            "skill_score": round(skill_scores[work_id[0]], 2),
+            "education_score": round(edu_scores[work_id[0]], 2),
+            "salary_score": round(salary_scores[work_id[0]], 2),
+            "city_score": round(city_scores[work_id[0]], 2)
         })
-    # print(all_scores[0])
+    print(all_scores[0])
     return all_scores
 
 # 调用推荐函数
