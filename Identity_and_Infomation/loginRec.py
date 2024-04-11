@@ -134,15 +134,13 @@ def location_match_percentage(resume_city, work_city, city_coordinates_cache):
         # 计算城市之间的地理距离
         distance_km = geodesic(work_coordinates, resume_coordinates).kilometers
 
-        # 将距离转换为评分（距离越近，评分越高）
-        # 这里采用一个简单的线性转换
-        max_distance_km = 5000  # 假设最大距离为5000公里
-        min_score = 0  # 最低评分
-        max_score = 1  # 最高评分
-
-        # 线性转换
-        score2 = max_score - (distance_km / max_distance_km) * (max_score - min_score)
-        score2 = max(min_score, min(score2, max_score))  # 确保评分在合理范围内
+        # 使用1/x曲线调整距离评分，其中x为距离
+    # 设定一个最小距离值，避免除数为0
+    min_distance_km = 1
+    distance_km = max(distance_km, min_distance_km)  # 确保距离不小于最小距离
+    # 评分转换，这里1/（1+距离）用于保持评分在合理范围内
+    score2 = 1 / (1 + distance_km / 1500)  # 使用1000作为调节因子，调整距离对评分的影响
+    score2 = max(min_score, min(score2, max_score))  # 确保评分在合理范围内
     score = 0.5 * preference_1 + 0.5 * score2
     return score
 
