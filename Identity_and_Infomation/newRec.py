@@ -71,12 +71,15 @@ def calculate_skills_match_percentage(resume_skills, work_keywords):
 
     # 计算交集和并集
     skills_intersection = set(resume_skills).intersection(set(work_keywords))
-    skills_union = set(resume_skills).union(set(work_keywords))
+    skills_required = set(work_keywords)
 
     # 计算契合度百分比
-    match_percentage = len(skills_intersection) / len(skills_union)
-
+    match_percentage = len(skills_intersection) / len(skills_required)
+    noise = np.random.uniform(-0.05, 0.05)
+    match_percentage=match_percentage+noise
+    match_percentage=max(0, min(1, match_percentage))
     return match_percentage
+
 
 
 def calculate_salary_match_percentage(min_dream_salary, max_dream_salary, work_salary_str):
