@@ -140,7 +140,6 @@ def location_match_percentage(resume_city, work_city, city_coordinates_cache):
     distance_km = max(distance_km, min_distance_km)  # 确保距离不小于最小距离
     # 评分转换，这里1/（1+距离）用于保持评分在合理范围内
     score2 = 1 / (1 + distance_km / 1500)  # 使用1000作为调节因子，调整距离对评分的影响
-    score2 = max(min_score, min(score2, max_score))  # 确保评分在合理范围内
     score = 0.5 * preference_1 + 0.5 * score2
     return score
 
