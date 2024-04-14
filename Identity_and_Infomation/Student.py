@@ -80,16 +80,25 @@ def upload_resume(user_id):
             ''', (user_id,))
         existing_info = cursor.fetchone()
 
+        if resume_info.get('期望薪资下限'):
+            lowestSalary = resume_info.get('期望薪资下限')*1000
+        else:
+            lowestSalary = None
+        if resume_info.get('期望薪资上限'):
+            highestSalary = resume_info.get('期望薪资上限')*1000
+        else:
+            highestSalary = None
+
         if existing_info:
             # ljl:如果已存在，更新信息
             cursor.execute('''
-                    UPDATE student_info SET name = ?, sex = ?, loweStsalary = ?, higheStsalary = ?,
+                    UPDATE student_info SET name = ?, sex = ?, lowestSalary = ?, highestSalary = ?,
                     phone = ?, education = ?, year = ?, intention = ?, intentionCity = ?, email = ?, 
                     profession = ?, educationExperience = ?, internship = ?, project = ?, advantage = ?,
                     resume_path = ?, skills = ?
                     WHERE user_id = ?
-                ''', (resume_info.get('姓名'), resume_info.get('性别'), resume_info.get('期望薪资下限')*1000,
-                      resume_info.get('期望薪资上限')*1000, resume_info.get('联系电话'),
+                ''', (resume_info.get('姓名'), resume_info.get('性别'), lowestSalary,
+                      highestSalary, resume_info.get('联系电话'),
                       resume_info.get('学历'), resume_info.get('年龄'), resume_info.get('求职意向'),
                       resume_info.get('意向城市'), resume_info.get('电子邮箱'),
                       resume_info.get('专业'), resume_info.get('教育经历'), resume_info.get('工作经历'),
@@ -102,8 +111,8 @@ def upload_resume(user_id):
                         year,intention,intentionCity,email,profession,educationExperience,internship,project,advantage,
                         resume_path,skills)
                         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)''',
-                           (user_id, resume_info.get('姓名'), resume_info.get('性别'), resume_info.get('期望薪资下限')*1000,
-                            resume_info.get('期望薪资上限')*1000, resume_info.get('联系电话'),
+                           (user_id, resume_info.get('姓名'), resume_info.get('性别'), lowestSalary,
+                            highestSalary, resume_info.get('联系电话'),
                             resume_info.get('学历'), resume_info.get('年龄'), resume_info.get('求职意向'),
                             resume_info.get('意向城市'), resume_info.get('电子邮箱'),
                             resume_info.get('专业'), resume_info.get('教育经历'), resume_info.get('工作经历'),
@@ -183,34 +192,43 @@ def get_student_info(user_id):
 def update_student_info():
     data = request.get_json()
     user_id = data['userId']
-    # 提取其他所有字段
 
     conn = get_db_connection()
     cursor = conn.cursor()
+
+    # Fetch privacy setting and existing info in one go
     cursor.execute('''
-        SELECT * FROM student_info WHERE user_id = ?
-    ''', (user_id,))
+            SELECT * FROM student_info WHERE user_id = ?
+        ''', (user_id,))
     existing_info = cursor.fetchone()
 
     if existing_info:
-        # ljl:如果已存在，更新信息
+        privacy_setting = existing_info['privacy_setting']
+
+        # Encrypt sensitive information if privacy setting is not 0
+        if privacy_setting != 0:
+            encrypted_info = encrypt(data['name'], data['phone'], data['email'])
+        else:
+            encrypted_info = {'name': data['name'], 'phone': data['phone'], 'email': data['email']}
+
+        # Update the information in the database
         cursor.execute('''
                 UPDATE student_info SET name = ?, sex = ?, lowestSalary = ?, highestSalary = ?,
                 phone = ?, education = ?, year = ?, intention = ?, intentionCity = ?, email = ?, 
                 profession = ?, educationExperience = ?, internship = ?, project = ?, advantage = ?
                 WHERE user_id = ?
-            ''', (data['name'], data['sex'], data['lowestSalary']*1000, data['highestSalary']*1000,
-                  data['phone'], data['education'], data['year'], data['intention'], data['intentionCity'],
-                  data['email'], data['profession'], data['educationExperience'], data['internship'],
+            ''', (encrypted_info['name'], data['sex'], data['lowestSalary'] * 1000, data['highestSalary'] * 1000,
+                  encrypted_info['phone'], data['education'], data['year'], data['intention'], data['intentionCity'],
+                  encrypted_info['email'], data['profession'], data['educationExperience'], data['internship'],
                   data['project'], data['advantage'], user_id))
     else:
-        # ljl:如果不存在，插入新记录
+        # If no existing record, insert a new record
         cursor.execute('''
                 INSERT INTO student_info (user_id, name, sex, lowestSalary, highestSalary,
                 phone, education, year, intention, intentionCity, email, profession, 
                 educationExperience, internship, project, advantage) 
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (user_id, data['name'], data['sex'], data['lowestSalary']*1000, data['highestSalary']*1000,
+            ''', (user_id, data['name'], data['sex'], data['lowestSalary'] * 1000, data['highestSalary'] * 1000,
                   data['phone'], data['education'], data['year'], data['intention'], data['intentionCity'],
                   data['email'], data['profession'], data['educationExperience'], data['internship'],
                   data['project'], data['advantage']))
@@ -530,6 +548,39 @@ def extract_info_from_pdf_resume(text):
     # file.write(json_data)
     return info
 
+
+def encrypt(name, phone, email):
+    new_name = ""
+    if name != '':
+        new_name = name[0]
+        for i in range(len(name) - 1):
+            new_name = new_name + '*'
+    new_email = ""
+    if email != '':
+        new_email = email[0:3]
+        temp = 2
+        while email[temp] != '@':
+            new_email = new_email + "*"
+            temp = temp + 1
+        while temp < len(email):
+            new_email = new_email + email[temp]
+            temp = temp + 1
+
+    new_phone = ""
+    if phone != '':
+        new_phone = phone[0:3]
+        for i in range(len(phone) - 3):
+            new_phone = new_phone + '*'
+    '''
+    new_age=""
+    if age!=None:
+        new_age=""
+        for i in range(len(age)):
+            new_age=new_age+'*'
+    '''
+    result = {'name': new_name, 'phone': new_phone, 'email': new_email}
+    # result['age']=new_age
+    return result
 # # 示例用法
 # resume_text = read_pdf_file('凡广的简历.pdf')
 # resume_info = extract_info_from_pdf_resume(resume_text)

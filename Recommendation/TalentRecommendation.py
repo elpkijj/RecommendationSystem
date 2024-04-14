@@ -61,13 +61,14 @@ def sort_candidates(user_id, criteria):
     sort_field = sort_fields[criteria]
 
     # 筛选并查询推荐职位ID和匹配度
-    sql_query = '''
+    sql_query = f'''
                    SELECT si.id, si.name, si.sex, si.lowestSalary, si.highestSalary, si.phone, si.education, si.year, si.intention, si.intentionCity, si.email, si.profession, si.educationExperience, si.internship, si.project, si.advantage, si.skills,
-                          rc.match, rc.educationMatch, rc.salaryMatch, rc.addressMatch, rc.abilityMatch
+                   ROUND((0.4 * rc.{sort_field} + 0.2 * (rc.educationMatch + rc.addressMatch + rc.salaryMatch + rc.abilityMatch - rc.{sort_field}))*100, 3) as match,
+                   rc.educationMatch, rc.salaryMatch, rc.addressMatch, rc.abilityMatch
                    FROM recommended_candidates rc
                    JOIN student_info si ON rc.candidate_id = si.id
                    WHERE rc.user_id = ?
-                   ORDER BY {} DESC
+                   ORDER BY match DESC
                    LIMIT 20
                '''.format(sort_field)
 

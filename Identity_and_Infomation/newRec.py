@@ -1,3 +1,5 @@
+import random
+
 import pandas as pd
 import numpy as np
 import json
@@ -37,11 +39,11 @@ def parse_salary(salary_str):
         max_salary_numbers = re.findall(r'\d+', parts[1].strip())
         # 确保提取到的是数字并进行转换
         if min_salary_numbers:
-            min_salary = int(''.join(min_salary_numbers)) *1000  # 正确处理最小薪资
+            min_salary = int(''.join(min_salary_numbers)) * 1000  # 正确处理最小薪资
         else:
             min_salary = 1
         if max_salary_numbers:
-            max_salary = int(''.join(max_salary_numbers)) *1000   # 正确处理最大薪资
+            max_salary = int(''.join(max_salary_numbers)) * 1000  # 正确处理最大薪资
         else:
             max_salary = 1
     else:
@@ -49,7 +51,7 @@ def parse_salary(salary_str):
 
         salary_numbers = re.findall(r'\d+', parts[0].strip())
         if salary_numbers:
-            min_salary = max_salary = int(''.join(salary_numbers))*1000
+            min_salary = max_salary = int(''.join(salary_numbers)) * 1000
         else:
             min_salary = max_salary = 1
     return min_salary, max_salary
@@ -74,12 +76,13 @@ def calculate_skills_match_percentage(resume_skills, work_keywords):
     skills_required = set(work_keywords)
 
     # 计算契合度百分比
-    match_percentage = len(skills_intersection) / len(skills_required)
-    noise = np.random.uniform(-0.05, 0.05)
-    match_percentage=match_percentage+noise
-    match_percentage=max(0, min(1, match_percentage))
-    return match_percentage
+    if len(skills_required) <= 2:
+        return 0
 
+    match_percentage = len(skills_intersection) + 1 / len(skills_required)
+    match_percentage = max(0, min(1, match_percentage))
+    match_percentage += random.uniform(-0.2, -0.1)
+    return match_percentage
 
 
 def calculate_salary_match_percentage(min_dream_salary, max_dream_salary, work_salary_str):
@@ -95,12 +98,12 @@ def calculate_salary_match_percentage(min_dream_salary, max_dream_salary, work_s
         # 期望薪资范围完全高于岗位薪资范围
         average_dream_salary = (min_dream_salary + max_dream_salary) / 2
         average_work_salary = (min_work_salary + max_work_salary) / 2
-        difference_ratio = (average_dream_salary - average_work_salary) / average_work_salary
+        difference_ratio = (average_dream_salary - average_work_salary) / average_dream_salary
     elif max_dream_salary < min_work_salary:
         # 岗位薪资范围完全高于期望薪资范围
         average_dream_salary = (min_dream_salary + max_dream_salary) / 2
         average_work_salary = (min_work_salary + max_work_salary) / 2
-        difference_ratio = (average_work_salary - average_dream_salary) / average_dream_salary
+        difference_ratio = (average_work_salary - average_dream_salary) / average_work_salary
     else:
         # 有交集的情况，但不是完全匹配
         intersection = min(max_dream_salary, max_work_salary) - max(min_dream_salary, min_work_salary)
@@ -109,18 +112,10 @@ def calculate_salary_match_percentage(min_dream_salary, max_dream_salary, work_s
         return match_percentage
 
     # 使用平滑因子来调整匹配度
-    smooth_factor = 0.5
+    smooth_factor = 0.8
     match_percentage = 1 - (difference_ratio * smooth_factor)
     match_percentage = max(0.01, match_percentage)  # 使用0.01作为最低匹配度
-    print(min_dream_salary, max_dream_salary, min_work_salary, max_work_salary, match_percentage)
-
-    return match_percentage
-
-
-    # 使用平滑因子来调整匹配度
-    smooth_factor = 0.5
-    match_percentage = 1 - (difference_ratio * smooth_factor)
-    match_percentage = max(0.01, match_percentage)  # 使用0.01作为最低匹配度
+    # print(min_dream_salary, max_dream_salary, min_work_salary, max_work_salary, match_percentage)
 
     return match_percentage
 
@@ -141,7 +136,7 @@ def location_match_percentage(resume_city, work_city, city_coordinates_cache):
         # 计算城市之间的地理距离
         distance_km = geodesic(work_coordinates, resume_coordinates).kilometers
 
-           # 使用1/x曲线调整距离评分，其中x为距离
+        # 使用1/x曲线调整距离评分，其中x为距离
     # 设定一个最小距离值，避免除数为0
     min_distance_km = 1
     distance_km = max(distance_km, min_distance_km)  # 确保距离不小于最小距离
@@ -242,7 +237,7 @@ def recommend_jobs(resumes_data_path, resume_id, all_info_path, city_location_pa
     for work_id in sorted_scores:
         all_scores.append({
             "work_id": work_id,
-            "weighted_score": round(scores[work_id[0]]*100, 1),
+            "weighted_score": round(scores[work_id[0]] * 100, 1),
             "skill_score": round(skill_scores[work_id[0]], 2),
             "education_score": round(edu_scores[work_id[0]], 2),
             "salary_score": round(salary_scores[work_id[0]], 2),

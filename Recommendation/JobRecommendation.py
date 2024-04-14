@@ -113,18 +113,18 @@ def sort_jobs(user_id, criteria):
 
     # 获取排序字段
     sort_field = sort_fields[criteria]
-    # print(sort_field)
 
-    # 筛选并查询推荐职位ID和匹配度
-    sql_query = '''
+    # 生成SQL查询，计算匹配度
+    sql_query = f'''
                SELECT ci.id, ci.name, ci.job, ci.description, ci.education, ci.manager, ci.salary, ci.address, ci.link, ci.city, ci.skills, ci.lastActive,
-                      rj.match, rj.educationMatch, rj.addressMatch, rj.salaryMatch, rj.abilityMatch
+                      ROUND((0.4 * rj.{sort_field} + 0.2 * (rj.educationMatch + rj.addressMatch + rj.salaryMatch + rj.abilityMatch - rj.{sort_field}))*100, 3) as match,
+                      rj.educationMatch, rj.addressMatch, rj.salaryMatch, rj.abilityMatch
                FROM recommended_jobs rj
                JOIN company_info ci ON rj.job_id = ci.id
                WHERE rj.user_id = ?
-               ORDER BY {} DESC
+               ORDER BY match DESC
                LIMIT 20
-           '''.format(sort_field)
+           '''
 
     cursor.execute(sql_query, (user_id,))
     jobs = cursor.fetchall()
@@ -136,7 +136,6 @@ def sort_jobs(user_id, criteria):
     columns = [column[0] for column in cursor.description]
     # 将每个查询结果转换为字典
     jobs_list = [dict(zip(columns, job)) for job in jobs]
-    # print(jobs_list)
 
     conn.close()
     return jsonify(jobs_list), 200

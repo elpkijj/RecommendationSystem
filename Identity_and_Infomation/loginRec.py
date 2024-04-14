@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import random
 import json
 import re
 from geopy.geocoders import Nominatim
@@ -74,11 +75,14 @@ def calculate_skills_match_percentage(resume_skills, work_keywords):
     skills_required = set(work_keywords)
 
     # 计算契合度百分比
-    match_percentage = len(skills_intersection) / len(skills_required)
-    noise = np.random.uniform(-0.05, 0.05)
-    match_percentage=match_percentage+noise
-    match_percentage=max(0, min(1, match_percentage))
+    if len(skills_required) <= 2:
+        return 0
+
+    match_percentage = len(skills_intersection) + 1 / len(skills_required)
+    match_percentage = max(0, min(1, match_percentage))
+    match_percentage += random.uniform(-0.2, -0.1)
     return match_percentage
+
 
 
 def calculate_salary_match_percentage(min_dream_salary, max_dream_salary, work_salary_str):
@@ -94,12 +98,12 @@ def calculate_salary_match_percentage(min_dream_salary, max_dream_salary, work_s
         # 期望薪资范围完全高于岗位薪资范围
         average_dream_salary = (min_dream_salary + max_dream_salary) / 2
         average_work_salary = (min_work_salary + max_work_salary) / 2
-        difference_ratio = (average_dream_salary - average_work_salary) / average_work_salary
+        difference_ratio = (average_dream_salary - average_work_salary) / average_dream_salary
     elif max_dream_salary < min_work_salary:
         # 岗位薪资范围完全高于期望薪资范围
         average_dream_salary = (min_dream_salary + max_dream_salary) / 2
         average_work_salary = (min_work_salary + max_work_salary) / 2
-        difference_ratio = (average_work_salary - average_dream_salary) / average_dream_salary
+        difference_ratio = (average_work_salary - average_dream_salary) / average_work_salary
     else:
         # 有交集的情况，但不是完全匹配
         intersection = min(max_dream_salary, max_work_salary) - max(min_dream_salary, min_work_salary)
@@ -108,7 +112,7 @@ def calculate_salary_match_percentage(min_dream_salary, max_dream_salary, work_s
         return match_percentage
 
     # 使用平滑因子来调整匹配度
-    smooth_factor = 0.5
+    smooth_factor = 0.8
     match_percentage = 1 - (difference_ratio * smooth_factor)
     match_percentage = max(0.01, match_percentage)  # 使用0.01作为最低匹配度
 
