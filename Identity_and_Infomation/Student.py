@@ -7,6 +7,7 @@ import threading
 import pdfplumber
 import re
 import json
+import time
 from py2neo import Graph, Node, Relationship
 
 students = Blueprint('students', __name__)
@@ -349,6 +350,7 @@ def update_student_info():
     cursor.execute('UPDATE user SET first_login = 0 WHERE id = ?', (user_id,))
     conn.commit()
     conn.close()
+    time.sleep(2)
     return jsonify({'message': '信息更新成功'}), 200
 
 

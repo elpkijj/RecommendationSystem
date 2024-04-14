@@ -4,6 +4,7 @@ from flask import Flask, request, jsonify, Blueprint
 from datetime import datetime, timedelta
 import sqlite3
 from competAssess.CapabilityAssessment import access
+import time
 
 jobs = Blueprint('jobs', __name__)
 
@@ -33,6 +34,7 @@ def get_db_connection():
 
 @jobs.route('/jobs/recommended/<int:user_id>', methods=['GET'])
 def get_recommended_jobs(user_id):
+    time.sleep(2)
     conn = get_db_connection()
     cursor = conn.cursor()
 
