@@ -150,5 +150,62 @@
             "Python"
         ],
         "education": "硕士"
+    },
+    {
+        "id": 16,
+        "user_id": 19,
+        "intentionCity": "广州",
+        "lowestSalary": "10000",
+        "highestSalary": "15000",
+        "skills": [
+            "计算机",
+            "对接",
+            "Vue"
+        ],
+        "education": "本科"
+    },
+    {
+        "id": 18,
+        "user_id": 21,
+        "intentionCity": "北京",
+        "lowestSalary": "15000",
+        "highestSalary": "20000",
+        "skills": [
+            "数学",
+            "软件",
+            "设计"
+        ],
+        "education": "硕士"
+    },
+    {
+        "id": 19,
+        "user_id": 22,
+        "intentionCity": "长沙",
+        "lowestSalary": "20000",
+        "highestSalary": "25000",
+        "skills": [
+            "计算机",
+            "软件",
+            "设计",
+            "数据库",
+            "维护",
+            "word"
+        ],
+        "education": "硕士"
+    },
+    {
+        "id": 20,
+        "user_id": 23,
+        "intentionCity": "北京",
+        "lowestSalary": "15000",
+        "highestSalary": "20000",
+        "skills": [
+            "计算机",
+            "软件",
+            "实习",
+            "沟通",
+            "PC"
+        ],
+        "education": "硕士"
     }
 ]
