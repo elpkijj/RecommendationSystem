@@ -15,7 +15,7 @@ def get_db_connection():
 
 @talents.route('/talents/recommended/<int:user_id>', methods=['GET'])
 def get_recommended_talents(user_id):
-    time.sleep(2)
+    time.sleep(3)
     conn = get_db_connection()
     cursor = conn.cursor()
     # 查询推荐人才ID和匹配度
