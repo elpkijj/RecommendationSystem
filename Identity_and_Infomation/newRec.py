@@ -81,7 +81,7 @@ def calculate_skills_match_percentage(resume_skills, work_keywords):
 
     match_percentage = len(skills_intersection) + 1 / len(skills_required)
     match_percentage = max(0, min(1, match_percentage))
-    match_percentage += random.uniform(-0.2, -0.1)
+    match_percentage += random.uniform(-0.1, -0.05)
     return match_percentage
 
 

@@ -270,7 +270,6 @@ def create_company_info():
     cursor.execute('UPDATE user SET first_login = 0 WHERE id = ?', (data['userId'],))
     conn.commit()
     conn.close()
-    time.sleep(2)
     return jsonify({'message': '企业信息提交成功'}), 200
 
 

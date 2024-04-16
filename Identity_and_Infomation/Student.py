@@ -350,7 +350,6 @@ def update_student_info():
     cursor.execute('UPDATE user SET first_login = 0 WHERE id = ?', (user_id,))
     conn.commit()
     conn.close()
-    time.sleep(2)
     return jsonify({'message': '信息更新成功'}), 200
 
 
@@ -369,18 +368,21 @@ def fetch_student_info(user_id):
 
 
 def save_student_info_to_json(student_info, filename='resumes.json'):
+    import json
     try:
         with open(filename, 'r', encoding='utf-8') as file:
             existing_data = json.load(file)
     except (FileNotFoundError, json.JSONDecodeError):
         existing_data = []
 
+    # 统一处理 skills 字段为列表格式
+    if isinstance(student_info.get('skills', ''), str):
+        student_info['skills'] = json.loads(student_info['skills'])
+
     # 检查并更新或追加学生信息
     updated = False
     for i, existing_info in enumerate(existing_data):
         if existing_info['user_id'] == student_info['user_id']:
-            if isinstance(student_info['skills'], str):
-                student_info['skills'] = json.loads(student_info['skills'])
             existing_data[i] = student_info  # 更新学生信息
             updated = True
             break
@@ -390,6 +392,7 @@ def save_student_info_to_json(student_info, filename='resumes.json'):
 
     with open(filename, 'w', encoding='utf-8') as file:
         json.dump(existing_data, file, ensure_ascii=False, indent=4)
+
 
 
 def read_pdf_file(filename):

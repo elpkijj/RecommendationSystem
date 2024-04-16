@@ -34,7 +34,7 @@ def get_db_connection():
 
 @jobs.route('/jobs/recommended/<int:user_id>', methods=['GET'])
 def get_recommended_jobs(user_id):
-    time.sleep(3)
+    time.sleep(1.5)
     conn = get_db_connection()
     cursor = conn.cursor()
 
